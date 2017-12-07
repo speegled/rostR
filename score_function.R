@@ -1,7 +1,8 @@
 library(dplyr)
 library(igraph)
 
-roster <- read.csv("/Users/speegled/flroster", sep = "\t", header = FALSE, as.is = TRUE)
+my_scale = 5
+roster <- read.csv("data/flroster", sep = "\t", header = FALSE, as.is = TRUE)
 head(roster, 9)
 names(roster)[4] <- "Name"
 names(roster)[5] <- "Power"
@@ -26,6 +27,10 @@ roster$Female <- roster$Female == "Female"
 str(roster)
 summary(roster)
 
+write.csv(roster[,c(1,2,7)], "data/formatted_roster.csv", row.names = FALSE)
+roster <- roster[,c(1,2,7)]
+head(roster)
+
 roster$Power <- as.numeric(scale(roster$Power))
 summary(roster)
 roster$Female <- as.integer(roster$Female)
@@ -33,111 +38,55 @@ roster$Female <- (roster$Female - mean(roster$Female))/sd(roster$Female)
 
 
 head(roster)
-length(unique(roster$Id))
-num_teams <- 9
+num_players <- length(unique(roster$Id))
+players_per_team <- 17
+num_teams <- round(num_players/players_per_team)
+
 team_assignment <- data.frame(Id = unique(roster$Id))
 team_assignment$Team <- sample(c(rep(1:5,16), rep(6:9, 17)))
 head(team_assignment)
 roster <- left_join(roster, team_assignment)
 head(roster)
 
-bag <- read.csv("/Users/speegled/baggage", header = FALSE, sep = "\t", as.is = TRUE)
+bag <- read.csv("data/baggage", header = FALSE, sep = "\t", as.is = TRUE)
 bag <- bag[,c(1,3)]
-roster_long <- left_join(x = roster, y = bag, by = c("Id" = "V1"))
-names(roster_long)[9] <- "Baggage"
+names(bag) <- c("Baggager", "Baggage")
+#write.csv(bag, "data/formatted_baggage.csv", row.names = FALSE)
+
+
+roster_long <- left_join(x = roster, y = bag, by = c("Id" = "Baggager"))
+head(roster_long)
 roster_long <- left_join(roster_long, team_assignment, by = c("Baggage" = "Id"), suffix = c("", "_baggage"))
+#'
+#' I believe roster_long doesn't need Power or Female, but leaving for now.
+#'
 roster <- roster %>% 
   group_by(Female) %>% 
   mutate(isTop = ifelse(Power > quantile(Power, .9), 2, ifelse(Power > quantile(Power, .75), 1, 0)))
 roster$isTop <- as.numeric(scale(roster$isTop))
 
-score_roster <- function(roster_long, roster) {
-  num_no_baggage <- roster_long %>% 
-    group_by(Id) %>% 
-    summarize(no_baggage = all(!Team %in% Team_baggage)) %>% 
-    ungroup() %>% 
-    summarize(sum(no_baggage))
+num_requesting_baggage <- num_players - sum(is.na(roster_long$Baggage))
+baggage_requests <- sum(!is.na(roster_long$Baggage))
 
-  num_missing_forced_baggage <- 0
-  diff_number_women <- roster %>% 
-    group_by(Team) %>% 
-    summarize(num_women = mean(Female)) %>% 
-    ungroup() %>% 
-    summarize(sd_women = sd(num_women)) %>% 
-    pull(sd_women)
-        
-  diff_number_total <- 0  
-  if(0) {
-    diff_number_total <- roster %>% 
-    group_by(Team) %>% 
-    summarize(num_men = sum(!Female)) %>% 
-    ungroup() %>%
-    arrange(desc(num_men)) %>% 
-    summarize(n = first(num_men) - last(num_men)) %>% 
-    pull(n)
-  }
-  
-  diff_mean_best_line <- roster %>% 
-    group_by(Team) %>% 
-    summarize(n = mean(isTop)) %>% 
-    summarize(diff = sd(n)) %>% 
-    pull(diff)
-    
-  diff_mean_all_players <- roster %>% 
-    group_by(Team) %>% 
-    summarize(mean = mean(Power)) %>% 
-    summarize(diff = sd(mean)) %>% 
-    pull(diff)
-  
-  num_baggage_granted <- roster_long %>% 
-    group_by(Id) %>% 
-    summarize(num_granted = sum(Team_baggage == Team)) %>% 
-    ungroup() %>% 
-    pull(num_granted) %>% 
-    sum(na.rm = TRUE) 
-  
-  mean_men_athleticism <- 0 
+#save(roster_long, roster, file = "data/roster_data")
+load("data/roster_data")
 
-  
-  as.numeric(diff_number_women * 50 + diff_mean_all_players * 5 + num_no_baggage - 33 + diff_mean_best_line * 20 +  -1 * num_baggage_granted / 50)
-  #+ diff_number_total * 3 + num_no_baggage * .0001 + diff_mean_all_players * 2 + diff_mean_best_line * 3)
+things_to_optimize <- data.frame(property =  c("num_no_baggage", "num_women", "num_players_team", "diff_mean_best_line", "diff_mean_all_players" , "num_bagge_not_granted"), IsOptimized = rep(TRUE, 6), OptimizedValue = rep(0,6))
+for(i in which(things_to_optimize$IsOptimized)) {
+  weight_vec <- rep(1,6)
+  weight_vec[i] <- 1
+  out <- find_best_roster(roster, roster_long, weight_vec, myscale, score_roster, num_iter = 2000)
+   
 }
 
-current_score <- score_roster(roster_long, roster)
-probs <- current_score
-Ids <- unique(roster$Id)
-for(i in 1:1000) {
-  cboth <- sample(Ids, 2)
-  c1 <- cboth[1]
-  c2 <- cboth[2]
-  t1 <- roster$Team[min(which(roster$Id == c1))]
-  t2 <- roster$Team[min(which(roster$Id == c2))]
-
-  if(t1 != t2) {
-    roster_proposed <- roster
-    roster_proposed$Team[which(roster$Id == c1)] <- t2
-    roster_proposed$Team[which(roster$Id == c2)] <- t1
-    roster_long_proposed <- roster_long
-    roster_long_proposed$Team[which(roster_long$Id == c1)] <- t2
-    roster_long_proposed$Team[which(roster_long$Id == c2)] <- t1
-    roster_long_proposed$Team_baggage[which(roster_long$Baggage == c1)] <- t2
-    roster_long_proposed$Team_baggage[which(roster_long$Baggage == c2)] <- t1
-    score_proposed <- score_roster(roster_long_proposed, roster_proposed)
-    if(runif(1) < 10^(15 * current_score - 15 * score_proposed)) {
-      current_score <- score_proposed
-      roster <- roster_proposed
-      roster_long <- roster_long_proposed
-      probs <- c(probs, current_score)
-    }
-  }
-}
-
-sum(diff(probs) > 0)/sum(diff(probs) < 0)
-roster_long %>% group_by(Id) %>% summarize(no_baggage = all(!Team %in% Team_baggage)) %>% ungroup() %>% summarize(sum(no_baggage))
-roster_long %>% distinct(Id, Team, Female) %>% group_by(Team) %>% summarize(n = sum(Female > 0))
-roster_long %>% distinct(Id, Team, Power) %>% group_by(Team) %>% summarize(n = mean(Power)) %>% summarize(sd(n))
-roster_long %>% group_by(Id) %>% summarize(num_granted = sum(Team_baggage == Team)) %>% ungroup() %>% pull(num_granted) %>% sum(na.rm = TRUE) / sum(!is.na(roster_long$Team_baggage))
-roster %>% group_by(Team) %>% summarize(n = mean(isTop)) %>% summarize(diff = sd(n)) %>% pull(diff)
+out <- find_best_roster(out$roster, out$roster_long, weight_vec, myscale, score_roster, num_iter = 2000)
+out$probs
+#sum(diff(probs) > 0)/sum(diff(probs) < 0)
+out$roster_long %>% group_by(Id) %>% summarize(no_baggage = all(!Team %in% Team_baggage)) %>% ungroup() %>% summarize(sum(no_baggage))
+out$roster_long %>% distinct(Id, Team, Female) %>% group_by(Team) %>% summarize(n = sum(Female > 0))
+out$roster_long %>% distinct(Id, Team, Power) %>% group_by(Team) %>% summarize(n = mean(Power)) %>% summarize(sd(n))
+out$roster_long %>% group_by(Id) %>% summarize(num_granted = sum(Team_baggage == Team)) %>% ungroup() %>% pull(num_granted) %>% sum(na.rm = TRUE) / sum(!is.na(roster_long$Team_baggage))
+out$roster %>% group_by(Team) %>% summarize(n = mean(isTop)) %>% summarize(diff = sd(n)) %>% pull(diff)
 
 roster_long %>% distinct(Id, Baggage) %>% summarize(sum(is.na(Baggage)))
 
