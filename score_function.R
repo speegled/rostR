@@ -1,5 +1,6 @@
 library(dplyr)
 library(igraph)
+library(stringr)
 
 my_scale = 5
 roster <- read.csv("data/flroster", sep = "\t", header = FALSE, as.is = TRUE)
@@ -69,7 +70,7 @@ num_requesting_baggage <- num_players - sum(is.na(roster_long$Baggage))
 baggage_requests <- sum(!is.na(roster_long$Baggage))
 
 #save(roster_long, roster, file = "data/roster_data")
-load("data/roster_data")
+#load("data/roster_data")
 
 things_to_optimize <- data.frame(property =  c("num_no_baggage", "num_women", "num_players_team", "diff_mean_best_line", "diff_mean_all_players" , "num_bagge_not_granted"), IsOptimized = rep(TRUE, 6), OptimizedValue = rep(0,6))
 for(i in which(things_to_optimize$IsOptimized)) {
@@ -87,6 +88,21 @@ out$roster_long %>% distinct(Id, Team, Female) %>% group_by(Team) %>% summarize(
 out$roster_long %>% distinct(Id, Team, Power) %>% group_by(Team) %>% summarize(n = mean(Power)) %>% summarize(sd(n))
 out$roster_long %>% group_by(Id) %>% summarize(num_granted = sum(Team_baggage == Team)) %>% ungroup() %>% pull(num_granted) %>% sum(na.rm = TRUE) / sum(!is.na(roster_long$Team_baggage))
 out$roster %>% group_by(Team) %>% summarize(n = mean(isTop)) %>% summarize(diff = sd(n)) %>% pull(diff)
+
+
+
+
+final_roster <- read.csv("data/flroster", sep = "\t", header = FALSE, as.is = TRUE)
+head(final_roster)
+final_roster
+names(final_roster)[1] <- "Id"
+final_roster <- left_join(final_roster, select(out$roster, Id, Team))[,c(1, 4,5,16,19 )]
+final_roster <- final_roster %>% group_by(Team) %>% mutate(pow = mean(V5)) %>% arrange(Team) %>% print(n = 148)
+final_roster %>% group_by(V16, Team) %>% arrange(desc(pow)) %>% top_n(3, V5) %>% group_by(Team) %>% mutate(top_mean = mean(V5)) %>% distinct(Team, top_mean)
+
+
+%>% mutate(bp = mean(top_n(n = 3, pow)))
+
 
 roster_long %>% distinct(Id, Baggage) %>% summarize(sum(is.na(Baggage)))
 
