@@ -17,7 +17,7 @@ ui <- fluidPage(
         tabPanel("File Upload",
                  fileInput("roster", h4("Player file in csv format. required vars: Id, Power, Female")),
                  fileInput("baggage", h4("Baggage file in csv format: required vars: Baggager, Baggage")),
-                 actionButton("goButton", "RostRize")
+                 actionButton("RostRize", "RostRize")
         ),
         tabPanel("Fine Control",
                  fluidRow (
@@ -131,7 +131,7 @@ ui <- fluidPage(
                  
                tags$ol(h4("Fine Control"),
                  tags$li("If you want finer control, use the Importance Levels tab and the Iterate button inside that tab."),
-                 tags$li("If you want to change multiple settings at once, set Number of Iterations to a small number, then make it bigger again."),
+                 tags$li("You will want to Iterate multiple times, perhaps changing parameters, until you find a roster that you like."),
                  tags$li("You can download your roster under the Download tab.")
                )
                )
@@ -278,16 +278,14 @@ server <- function(input, output) {
     return(r_value)
   })
   
-  get_out <- reactive({
+  get_out <- eventReactive(eventExpr = input[["goButton"]],
+    valueExpr = {
+     inFile <- input$file1
     
-    input$goButton
-    
-    inFile <- input$file1
-    
-    if (is.null(input$roster) || is.null(input$baggage))
+     if (is.null(input$roster) || is.null(input$baggage))
       return(NULL)
     
-    weight_vec <- c(get_num_no_baggage(), 
+     weight_vec <- c(get_num_no_baggage(), 
                     get_num_women_weight(), 
                     get_num_players_weight(), 
                     get_best_line_mean_weight(), 
@@ -327,7 +325,10 @@ server <- function(input, output) {
     
     out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  input$num_teams, meanscore = power_mean, sdev = power_sd, men_per_line = 5)
     list(out = out, out2 = out2)
-  })
+    }
+    )
+  
+
   
   output$table <- renderTable({
     g_out <- get_out()
