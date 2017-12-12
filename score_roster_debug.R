@@ -1,6 +1,7 @@
-score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, meanscore, sdev) {
+score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, meanscore = 0, sdev = 1, men_per_line = 5) {
   
   
+  women_per_line = 7 - men_per_line
   
   num_no_baggage <- roster_long %>% 
     group_by(Id) %>% 
@@ -10,7 +11,7 @@ score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, means
     pull(n)
   
   num_women <- as.numeric(table(roster$Team[which(roster$Female> 0)]))
-  diff_number_women <- my_mad(num_women, center = mean(num_women)/num_teams) + 
+  diff_number_women <- my_mad(num_women, center = mean(num_women))/400 + 
     max(max(num_women) - min(num_women)  - 2, 0) * .02 
   
   # diff_number_women <- roster %>% 
@@ -22,6 +23,8 @@ score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, means
   
   num_players_teams <- as.numeric(table(roster$Team))
   diff_number_total <- mad(num_players_teams, center = mean(num_players_teams))
+  diff_number_total <- my_mad(num_players_teams, center = mean(num_players_teams))/1000 + 
+    max(max(num_players_teams) - min(num_players_teams) - 2, 0) * .01
   
   diff_mean_best_men <- roster %>% 
     filter(Female < 0) %>% 
@@ -46,7 +49,7 @@ score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, means
   probs <- sum(weight_vec * results_vec)
   
   sorted <- setorder(setDT(roster), Team, Female, -Power)[, indx := seq_len(.N), Team][indx <= men_per_line]
-  women_sorted <- setorder(setDT(women_roster), Team, -Female, -Power)[, indx := seq_len(.N), Team][indx <= women_per_line]
+  women_sorted <- setorder(setDT(roster), Team, -Female, -Power)[, indx := seq_len(.N), Team][indx <= women_per_line]
   sorted <- rbind(sorted, women_sorted)
   power_best_line <- aggregate(x = sorted$Power, by = list(sorted$Team), FUN = mean)
   
