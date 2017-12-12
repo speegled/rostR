@@ -14,7 +14,7 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       tabsetPanel(
-        tabPanel("File Upload",
+        tabPanel("File Input",
                  fileInput("roster", h4("Player file in csv format. required vars: Id, Power, Female")),
                  fileInput("baggage", h4("Baggage file in csv format: required vars: Baggager, Baggage")),
                  actionButton("RostRize", "RostRize")
@@ -72,7 +72,7 @@ ui <- fluidPage(
                           bsTooltip("my_scale", "Larger ignores worse rosters in MCMC. Try changing by 10% to start.", placement = "bottom")
                    ),
                    column(4,
-                          numericInput("num_teams", h4("Number of Teams"), value = 9),
+                          numericInput("num_teams", h4("Number of Teams"), step = 1, min = 1, max = 100, value = 1),
                           bsTooltip("num_teams", "Set this before Iterating the first time.", placement = "bottom")
                    )
                  ),
@@ -84,11 +84,13 @@ ui <- fluidPage(
                    column(6, numericInput("num_iter", h3("Number of Iterations"), value = 200))
                  ),
                  actionButton("goButton", "Iterate")
-        )
+        ),
+        tabPanel("Download Finished Roster",
+                 downloadButton("downloadData", "Download"))
       )
     ),
-    mainPanel(tabsetPanel(
-      tabPanel("Welcome",
+    mainPanel(tabsetPanel(id = "inTabset",
+      tabPanel(title = "Welcome", value = "one",
                h2("Welcome to RostR, an MCMC Based, Interactive Roster Builder"),
                tags$br(),
                "RostR uses Markov Chain Monte Carlo to assign players to teams. When assigning players, there are competing goals. Friends want to play on the same team. Teams should be reasonably competitive. If it is a mixed league, the gender rations of the teams should be similar. RostR allows users to assign importance levels to the various competing goals, and finds a roster which is suited to those goals.",
@@ -123,10 +125,11 @@ ui <- fluidPage(
                tags$ol(
                  tags$li("Upload your two files."),
                  tags$ol(h4("Default"),
-                         tags$li("If you want to see what the default settings do, click Build my Roster."),
-                         tags$li("This will take several minutes to run."),
-                         tags$li("You can observe the progress by viewing the Diagnostics, Roster or Graph tab."),
-                        tags$li("When the builder is done, the download roster button will be active in the Download tab.")
+                         tags$li("If you want to see what the default settings do, go to Fine Control."),
+                         tags$li("Enter number of Teams, if desired. Otherwise, program will estimate."),
+                         tags$li("Set Number of Iterations to 20 000 and Iterate."),
+                         tags$li("Optional: force number of women to be the same and iterate at 10 000, then set scale to 5 and iterate 500 times."),
+                         tags$li("When the builder is done, the download roster button will be active in the Download tab.")
                          ),
                  
                tags$ol(h4("Fine Control"),
@@ -138,7 +141,7 @@ ui <- fluidPage(
                
                
       ),
-      tabPanel("Diagnostics", fluidRow(
+      tabPanel(title = "Diagnostics",value = "two",fluidRow(
         column(12,
                tableOutput('table')
         )
@@ -153,16 +156,17 @@ ui <- fluidPage(
       textOutput('my_scale_warning'),
       textOutput('iteration_warning')
       ),
-      tabPanel("Roster",
+      tabPanel(title = "Roster", value = "three",
                tableOutput('roster_by_team')
-      )
+      ),
+      tabPanel(title = "Graph", value = "four")
     )
     )
   )
 )
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   output$text1 <- renderText({
     if (is.null(input$roster) || is.null(input$baggage)) {
@@ -248,9 +252,18 @@ server <- function(input, output) {
     return(temp)
   })
   
+  get_num_teams <- reactive({
+    if(input$num_teams <= 1 && !is.null(input$roster)) {
+      r1 <- read.csv(input$roster$datapath)
+      if(nrow(r1) > 14)
+        return(floor(nrow(r1)/15))
+      else return(2)
+    }
+    return(input$num_teams)
+  })
+  
   
   get_r1_and_r1_long <- reactive({
-    input$num_teams
     r1 <- read.csv(input$roster$datapath)
     bag <- read.csv(input$baggage$datapath)
     #'
@@ -269,7 +282,7 @@ server <- function(input, output) {
     #'
     
     team_assignment <- data.frame(Id = unique(r1$Id))
-    team_assignment$Team <- c(sample(rep(1:input$num_teams,floor(nrow(r1)/input$num_teams))), sample(1:input$num_teams, nrow(r1) %% input$num_teams))
+    team_assignment$Team <- c(sample(rep(1:get_num_teams(),floor(nrow(r1)/get_num_teams()))), sample(1:get_num_teams(), nrow(r1) %% get_num_teams()))
     r1 <- left_join(r1, team_assignment)
     scaled_Power <- scale(r1$Power)
     power_mean <<- mean(r1$Power)
@@ -313,7 +326,7 @@ server <- function(input, output) {
                               my_scale = my_scale, 
                               score_roster = score_roster,
                               num_iter = input$num_iter,
-                              num_teams = input$num_teams,
+                              num_teams = get_num_teams(),
                               men_per_line = get_num_men())
       rosters_best <<- list(r1 = out$roster, r1_long = out$roster_long)
     } else {
@@ -323,14 +336,11 @@ server <- function(input, output) {
                               my_scale = my_scale, 
                               score_roster = score_roster,
                               num_iter = input$num_iter,
-                              num_teams = input$num_teams,
+                              num_teams = get_num_teams(),
                               men_per_line = get_num_men())
       rosters_best <<- list(r1 = out$roster, r1_long = out$roster_long)
-    }
-    
-    
-    
-    out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  input$num_teams, meanscore = power_mean, sdev = power_sd, men_per_line = get_num_men())
+      }
+    out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  get_num_teams(), meanscore = power_mean, sdev = power_sd, men_per_line = get_num_men())
     list(out = out, out2 = out2)
     }
     )
@@ -403,6 +413,20 @@ server <- function(input, output) {
       return(paste("You've done a lot of runs now. Consider raising the number of iterations. Once you are more or less happy, run one last time with scale equal to 10 to find a good roster close to current roster listed."))
     return(NULL)
   })
+  
+  output$downloadData <- downloadHandler(
+    filename = "roster.csv",
+    content = function(file) {
+      if("Name" %in% names(rosters_best$r1)) {
+        write.csv(arrange(rosters_best$r1, Team, Female, Name), file, row.names = FALSE)
+      } else write.csv(arrange(rosters_best$r1, Team, Female), file, row.names = FALSE)
+    }
+  )
+  
+  observeEvent(input$goButton, {
+    updateTabsetPanel(session, "inTabset", selected = "two")
+  })
+  
   
 }
 
