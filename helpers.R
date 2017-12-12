@@ -4,6 +4,21 @@ my_mad <- function(x, center, expon = 1) {
 }
 
 
+checkRoster <- function(roster) {
+   
+  if(any(sapply(c("Id", "Power", "Female"), function(x) !(x %in% names(roster)) ))) return(-1)
+  return(0) 
+}
+
+fixBaggage <- function(roster, baggage) {
+  
+  names(baggage)[1:2] <- c("Baggager", "Baggage")
+
+  baggage <- filter(baggage, Baggager %in% roster$Id & Baggage %in% roster$Id)
+  
+}
+
+
 #'
 #'
 #' score_roster caculates a score that mcmc is trying to minimize. Note that we are assuming that
