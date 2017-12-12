@@ -73,12 +73,12 @@ ui <- fluidPage(
                    ),
                    column(4,
                           numericInput("num_teams", h4("Number of Teams"), value = 9),
-                          bsTooltip("num_teams", "Set this before uploading rosters.", placement = "bottom")
+                          bsTooltip("num_teams", "Set this before Iterating the first time.", placement = "bottom")
                    )
                  ),
                  fluidRow(
                    column(6, selectInput("gender_ratio", h3("Gender Ratio (M/F)"), 
-                                         choices = list("7/0", "6/1", "5/2", "4/3", "3/4", "2/5", "1/6", "0/7")),
+                                         choices = list("7/0" = 7, "6/1" = 6, "5/2" = 5, "4/3" = 4, "3/4" = 3, "2/5" = 2, "1/6" = 1, "0/7" = 1), selected = 5),
                           bsTooltip("gender_ratio", "Not yet implemented. Default is 5/2", placement = "bottom")
                    ),
                    column(6, numericInput("num_iter", h3("Number of Iterations"), value = 200))
@@ -176,6 +176,9 @@ server <- function(input, output) {
   #'
   #'
   
+  get_num_men <- reactive({
+    return(as.integer(input$gender_ratio))
+  })
   
   get_my_scale <- reactive({
     if(input$my_scale > 4 || input$my_scale < 1/4) {
