@@ -7,6 +7,7 @@ my_mad <- function(x, center, expon = 1) {
 checkRoster <- function(roster) {
    
   if(any(sapply(c("Id", "Power", "Female"), function(x) !(x %in% names(roster)) ))) return(-1)
+  if(nrow(roster) < 16) return(-1)
   return(0) 
 }
 
