@@ -27,8 +27,9 @@ fixBaggage <- function(roster, baggage) {
 #'
 #'
 
-score_roster <- function(roster_long, roster, weight_vec, num_teams, men_per_line = 5, women_per_line = 2) {
+score_roster <- function(roster_long, roster, weight_vec, num_teams, men_per_line, women_per_line = 2) {
   #browser()
+  women_per_line <- 7 - men_per_line
   num_no_baggage <-  sum(setDT(roster_long)[,  list(B = all(!Team %in% Team_baggage)) , by = Id]$B)/100
   
   num_women <- as.numeric(table(roster$Team[which(roster$Female> 0)]))
@@ -185,9 +186,9 @@ score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, means
 
 
 
-find_best_roster <- function(roster, roster_long, weight_vec, my_scale = 200, score_roster, num_teams = 9, num_iter = 1000) {
+find_best_roster <- function(roster, roster_long, weight_vec, my_scale = 200, score_roster, num_teams = 9, num_iter = 1000, men_per_line) {
   
-  current_score <- score_roster(roster_long, roster, weight_vec, num_teams = num_teams)
+  current_score <- score_roster(roster_long, roster, weight_vec, num_teams = num_teams, men_per_line = men_per_line)
   probs <- current_score
   Ids <- unique(roster$Id)
   for(i in 1:num_iter) {
@@ -206,7 +207,7 @@ find_best_roster <- function(roster, roster_long, weight_vec, my_scale = 200, sc
       roster_long_proposed$Team[which(roster_long$Id == c2)] <- t1
       roster_long_proposed$Team_baggage[which(roster_long$Baggage == c1)] <- t2
       roster_long_proposed$Team_baggage[which(roster_long$Baggage == c2)] <- t1
-      score_proposed <- score_roster(roster_long_proposed, roster_proposed, weight_vec, num_teams = num_teams)
+      score_proposed <- score_roster(roster_long_proposed, roster_proposed, weight_vec, num_teams = num_teams, men_per_line = men_per_line)
       if(runif(1) < 10^(my_scale * (current_score - score_proposed))) {
         current_score <- score_proposed
         roster <- roster_proposed

@@ -142,6 +142,7 @@ ui <- fluidPage(
         column(12,
                tableOutput('table')
         )
+        #textOutput('test')
       ),
       tags$hr(),
       textOutput('num_no_baggage'),
@@ -179,6 +180,7 @@ server <- function(input, output) {
   get_num_men <- reactive({
     return(as.integer(input$gender_ratio))
   })
+  
   
   get_my_scale <- reactive({
     if(input$my_scale > 4 || input$my_scale < 1/4) {
@@ -311,7 +313,8 @@ server <- function(input, output) {
                               my_scale = my_scale, 
                               score_roster = score_roster,
                               num_iter = input$num_iter,
-                              num_teams = input$num_teams)
+                              num_teams = input$num_teams,
+                              men_per_line = get_num_men())
       rosters_best <<- list(r1 = out$roster, r1_long = out$roster_long)
     } else {
       out <- find_best_roster(roster = rosters_best$r1, 
@@ -320,13 +323,14 @@ server <- function(input, output) {
                               my_scale = my_scale, 
                               score_roster = score_roster,
                               num_iter = input$num_iter,
-                              num_teams = input$num_teams)
+                              num_teams = input$num_teams,
+                              men_per_line = get_num_men())
       rosters_best <<- list(r1 = out$roster, r1_long = out$roster_long)
     }
     
     
     
-    out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  input$num_teams, meanscore = power_mean, sdev = power_sd, men_per_line = 5)
+    out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  input$num_teams, meanscore = power_mean, sdev = power_sd, men_per_line = get_num_men())
     list(out = out, out2 = out2)
     }
     )
