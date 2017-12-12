@@ -1,8 +1,8 @@
 library(dplyr)
 library(igraph)
 library(stringr)
+library(data.table)
 
-my_scale = 5
 roster <- read.csv("data/flroster", sep = "\t", header = FALSE, as.is = TRUE)
 head(roster, 9)
 names(roster)[4] <- "Name"
