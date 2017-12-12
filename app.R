@@ -16,8 +16,7 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel("File Input",
                  fileInput("roster", h4("Player file in csv format. required vars: Id, Power, Female")),
-                 fileInput("baggage", h4("Baggage file in csv format: required vars: Baggager, Baggage")),
-                 actionButton("RostRize", "RostRize")
+                 fileInput("baggage", h4("Baggage file in csv format: required vars: Baggager, Baggage"))
         ),
         tabPanel("Fine Control",
                  fluidRow (
