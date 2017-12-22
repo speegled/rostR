@@ -7,6 +7,7 @@ library(igraph)
 
 source("helpers.R")
 rosters_best <- list(r1 = NULL, r1_long = NULL)
+ig_layout <- NULL
 
 ui <- fluidPage(
   titlePanel("RostR"),
@@ -306,7 +307,7 @@ server <- function(input, output, session) {
     paste(input$iterate_1 , input$goButton, input$plot_click)
   })
   
-  get_out <- eventReactive(eventExpr = iterate_or_go(),
+  get_out <- eventReactive(eventExpr = {input$iterate_1 + input$goButton}, 
     valueExpr = {
      inFile <- input$file1
     
@@ -350,18 +351,16 @@ server <- function(input, output, session) {
       rosters_best <<- list(r1 = out$roster, r1_long = out$roster_long)
     }
     out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  get_num_teams(),men_per_line = get_num_men())
-    list(out = out, out2 = out2)
+    igraph_plot <- createPlot(roster_long = out$roster_long, roster = out$roster)
+    ig_layout <<- createLayout(roster_long = out$roster_long, roster = out$roster) 
+    list(out = out, out2 = out2, igraph_plot = igraph_plot)
     }
     )
   
-  get_layout <- reactive({
-    xxchange()
-    createLayout(roster_long = rosters_best$r1_long, roster = rosters_best$r1)
-  })
- 
+  
   vertex_info <- eventReactive(eventExpr = input$plot_click, valueExpr = {
     
-    my_layout <- get_layout()
+    my_layout <- ig_layout
     
     d1 <- select(rosters_best$r1_long, Id, Baggage)
     d2 <-  rosters_best$r1_long %>% group_by(Team) %>% transmute(B1 = first(Id),B2 = Id) %>% distinct(B1, B2) %>% ungroup() %>% select(B1, B2)
@@ -370,7 +369,7 @@ server <- function(input, output, session) {
     graph_df <- graph.data.frame(d = rbind(d1, d2), directed = FALSE)
     graph_df <- simplify(graph_df, remove.loops = TRUE)
     
-    id_loc <- which.min(abs(input$plot_click$x - my_layout[,1]) + abs(input$plot_click$y - my_layout[,2]))
+    id_loc <- which.min(abs(isolate(input$plot_click$x) - my_layout[,1]) + abs(isolate(input$plot_click$y) - my_layout[,2]))
     id_for_display <- as.integer(V(graph_df)$name[id_loc])
     team_for_display <- filter(rosters_best$r1, Id == id_for_display) %>% pull(Team)
     gender_for_display <- ifelse(filter(rosters_best$r1, Id == id_for_display) %>% pull(Female) > 0, "Female", "Male")
@@ -380,8 +379,8 @@ server <- function(input, output, session) {
                           Gender = gender_for_display, 
                           Team = team_for_display, 
                           Baggage_List = paste(baggage_for_display, sep = '', collapse = ' '),
-                          x = input$plot_click$x,
-                          y = input$plot_click$y,
+                          x = isolate(input$plot_click$x),
+                          y = isolate(input$plot_click$y),
                           stringsAsFactors = FALSE)
     
     return(for_out)
@@ -397,6 +396,9 @@ server <- function(input, output, session) {
     g_out$out2$team_data
   })
   
+  output$igraph_output <- renderPlot({
+    get_out()$igraph_plot
+  })
   
   output$num_no_baggage <- renderText({
     g_out <- get_out()
@@ -432,27 +434,25 @@ server <- function(input, output, session) {
   output$roster_by_team <- renderTable({
     if(is.null(rosters_best$r1))
       return(NULL)
-    
-    r1 <- rosters_best$r1
+    g_out <- get_out()
+    r1 <- cbind(rosters_best$r1, ig_layout)
+    names(r1)[ncol(r1)] <- "y"
+    names(r1)[ncol(r1) - 1] <- "x"
     new_female <- r1$Female
     new_female[r1$Female > 0] <- "F"
     new_female[r1$Female <= 0] <- "M"
     r1$Female <- new_female
     if("Name" %in% names(r1)){
-      return(r1 %>% dplyr::select(Id, Name, Power, Female, Team) %>% dplyr::arrange(Team, Female, desc(Power)))
-    } else return(r1 %>% dplyr::select(Id, Power, Female, Team) %>% dplyr::arrange(Team, Female, desc(Power)))
+      return(r1 %>% dplyr::select(Id, Name, Power, Female, Team, x, y) %>% dplyr::arrange(Team, Female, desc(Power)))
+    } else return(r1 %>% dplyr::select(Id, Power, Female, Team,x , y) %>% dplyr::arrange(Team, Female, desc(Power)))
     
     
     
     
   })
-  
-  output$igraph_output <- renderPlot({
-    xxchange()
-    
-   createPlot(roster_long = rosters_best$r1_long, roster = rosters_best$r1)
-  }
-  )
+ 
+
+
   
   output$iteration_warning <- renderText({
     req(input$num_iter)
@@ -476,7 +476,7 @@ server <- function(input, output, session) {
     }
   )
   
-  observeEvent(iterate_or_go, {
+  observeEvent(iterate_or_go(), {
     if(input$iterate_1 > 0 || input$goButton > 0)
       updateTabsetPanel(session, "inTabset", selected = "two")
   })
