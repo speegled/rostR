@@ -41,7 +41,7 @@ createPlot <- function(roster_long, roster) {
   
   d1 <- select(roster_long, Id, Baggage)
   d1$weight <- 0.5
-  d2 <-  roster_long %>% group_by(Team) %>% transmute(B1 = first(Id),B2 = Id) %>% distinct(B1, B2) %>% ungroup() %>% select(B1, B2)
+  d2 <-  suppressMessages(roster_long %>% group_by(Team) %>% transmute(B1 = first(Id),B2 = Id) %>% distinct(B1, B2) %>% ungroup() %>% select(B1, B2))
   names(d2) <- c("Id", "Baggage")
   d2$weight <- 10 + num_no_baggage
   
@@ -70,7 +70,7 @@ createPlot <- function(roster_long, roster) {
   
   players_no_baggage <- setDT(roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
   
-  the_plot <- plot(graph_df, vertex.size = 5, vertex.color = vertex_colors,mark.groups = team_groups,marl.col = rainbow, rescale = FALSE, layout = my_layout, vertex.label = vertex_labels, margin = c(-0.5,0,0,0), xlim = c(-0.1, 0.1), arrow.width = 0, arrow.size = 0, arrow.mode = 0, vertex.alpha = 0.2, vertex.label.cex = 0.7)
+  the_plot <- plot(graph_df, vertex.size = 5, vertex.color = vertex_colors,mark.groups = team_groups, rescale = FALSE, layout = my_layout, vertex.label = vertex_labels, margin = c(-0.5,0,0,0), xlim = c(-0.1, 0.1), arrow.width = 0, arrow.size = 0, arrow.mode = 0, vertex.alpha = 0.2, vertex.label.cex = 0.7)
   
     
   id_loc <- NULL
@@ -87,7 +87,7 @@ createPlot <- function(roster_long, roster) {
     #}
   
   #legend('topright', legend = c("No Baggage M", "No Baggage F"), col = c("Hot pink", "deepskyblue"), pch = 16)  
-  plot(graph_df, vertex.size = 5, vertex.color = vertex_colors,mark.groups = team_groups,marl.col = rainbow, rescale = FALSE, layout = my_layout, vertex.label = vertex_labels, arrow.width = 0, arrow.size = 0, arrow.mode = 0, vertex.alpha = 0.2, vertex.label.cex = 0.7)
+  plot(graph_df, vertex.size = 5, vertex.color = vertex_colors,mark.groups = team_groups, rescale = FALSE, layout = my_layout, vertex.label = vertex_labels, arrow.width = 0, arrow.size = 0, arrow.mode = 0, vertex.alpha = 0.2, vertex.label.cex = 0.7)
   #if(!is.null(id_loc))
   #   legend(x = -1, y = 1,cex = 0.5, paste("Id = ", id_for_display, gender_for_display, "Baggage ", baggage_for_display ))
 
