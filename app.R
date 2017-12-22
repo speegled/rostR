@@ -7,8 +7,6 @@ library(igraph)
 
 source("helpers.R")
 rosters_best <- list(r1 = NULL, r1_long = NULL)
-power_mean <- 0
-power_sd <- 1
 
 ui <- fluidPage(
   titlePanel("RostR"),
@@ -281,8 +279,7 @@ server <- function(input, output, session) {
     team_assignment$Team <- c(sample(rep(1:get_num_teams(),floor(nrow(r1)/get_num_teams()))), sample(1:get_num_teams(), nrow(r1) %% get_num_teams()))
     r1 <- left_join(r1, team_assignment)
     scaled_Power <- scale(r1$Power)
-    power_mean <<- mean(r1$Power)
-    power_sd <<- sd(r1$Power)
+    r1$Raw_power <- r1$Power
     r1$Power <- as.numeric(scaled_Power)
     
     
@@ -352,7 +349,7 @@ server <- function(input, output, session) {
                               men_per_line = get_num_men())
       rosters_best <<- list(r1 = out$roster, r1_long = out$roster_long)
     }
-    out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  get_num_teams(), meanscore = power_mean, sdev = power_sd, men_per_line = get_num_men())
+    out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  get_num_teams(),men_per_line = get_num_men())
     list(out = out, out2 = out2)
     }
     )
@@ -453,7 +450,7 @@ server <- function(input, output, session) {
   output$igraph_output <- renderPlot({
     xxchange()
     
-   createPlot(roster_long = rosters_best$r1_long, roster = rosters_best$r1, mean_power = power_mean, sd_power = power_sd)
+   createPlot(roster_long = rosters_best$r1_long, roster = rosters_best$r1)
   }
   )
   

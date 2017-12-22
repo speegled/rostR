@@ -35,7 +35,7 @@ createLayout <- function(roster_long, roster) {
   
   }
 
-createPlot <- function(roster_long, roster, mean_power, sd_power) {
+createPlot <- function(roster_long, roster) {
 
   num_no_baggage <- sum((roster_long$Team != roster_long$Team_baggage), na.rm = TRUE)
   
@@ -47,7 +47,7 @@ createPlot <- function(roster_long, roster, mean_power, sd_power) {
   
   graph_df <- graph.data.frame(d = rbind(d1, d2), directed = FALSE)
   graph_df <- simplify(graph_df, remove.loops = TRUE)
-  vertex_labels <- round(select(roster, Power) %>% pull(Power) * sd_power + mean_power) 
+  vertex_labels <- round(select(roster, Power) %>% pull(Raw_power)) 
   vertex_colors <- ifelse(select(roster, Female) %>% pull(Female) > 0,"Pink", "Light Blue") 
   
   players_no_baggage <- setDT(roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
@@ -241,16 +241,16 @@ score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, means
   
   probs <- score_roster(roster_long, roster, weight_vec, num_teams, men_per_line = men_per_line, power_thresh = power_thresh)
   
-  sorted <- setorder(setDT(roster), Team, Female, -Power)[, indx := seq_len(.N), Team][indx <= men_per_line]
-  women_sorted <- setorder(setDT(roster), Team, -Female, -Power)[, indx := seq_len(.N), Team][indx <= women_per_line]
+  sorted <- setorder(setDT(roster), Team, Female, -Raw_power)[, indx := seq_len(.N), Team][indx <= men_per_line]
+  women_sorted <- setorder(setDT(roster), Team, -Female, -Raw_power)[, indx := seq_len(.N), Team][indx <= women_per_line]
   sorted <- rbind(sorted, women_sorted)
-  power_best_line <- aggregate(x = sorted$Power, by = list(sorted$Team), FUN = mean)
-  power_best_line$x <- power_best_line$x * sdev + meanscore
+  power_best_line <- aggregate(x = sorted$Raw_power, by = list(sorted$Team), FUN = mean)
+  power_best_line$x <- power_best_line$x
   names(power_best_line) <- c("Team", "Mean_Power_Best_Line")
   
   team_data <- power_best_line
   team_data$Num_Women <- as.integer(num_women)
-  team_data$Mean_Power <- setDT(roster)[,list(B = mean(Power)), by = 'Team']$B * sdev + meanscore
+  team_data$Mean_Power <- setDT(roster)[,list(B = mean(Raw_power)), by = 'Team']$B
   team_data$Num_Players <- num_players_teams
   
   baggage_not_granted <- sum(roster_long$Team != roster_long$Team_baggage, na.rm = TRUE)
