@@ -1,3 +1,8 @@
+#'
+#' Not sure why the roster graph isn't working correctly. My current guess is that the order
+#' of the Id's is different in the layout than in V(graph_df)$names. But, I just don't know.
+#'
+#'
 library(shiny)
 library(dplyr)
 library(data.table)
@@ -152,7 +157,7 @@ ui <- fluidPage(
       tabPanel(title = "Graph", value = "four",
                fluidRow(
                  column(10,
-                   plotOutput('igraph_output', height = "1000px", click = "plot_click", hover = hoverOpts(
+                   plotOutput('igraph_output', height = "1000px", click = "click", hover = hoverOpts(
                    id = "plot_hover")
                    ),
                    column(2, tableOutput('vertex_info'))
@@ -167,27 +172,25 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
+  #'
+  #'
+  #' BEGIN: get all of the options for the find_best_roster function in helpers. 
+  #'
+  #'
   
-  
-  
-  output$text1 <- renderText({
-    if (is.null(input$roster) || is.null(input$baggage)) {
-      
+  get_num_teams <- reactive({
+    if(input$num_teams <= 1 && !is.null(input$roster)) {
+      r1 <- read.csv(input$roster$datapath)
+      if(nrow(r1) > 14)
+        return(floor(nrow(r1)/15))
+      else return(2)
     }
+    return(input$num_teams)
   })
-  
-  
-  
-  #'
-  #'
-  #' my_scale default is 200, which can be made into a number between 50 and 800 by the user. 
-  #'
-  #'
   
   get_num_men <- reactive({
     return(as.integer(input$gender_ratio))
   })
-  
   
   get_my_scale <- reactive({
     if(input$my_scale > 100 || input$my_scale < .01) {
@@ -198,7 +201,7 @@ server <- function(input, output, session) {
     return(my_scale)
   })
   
-  get_num_no_baggage <- reactive({
+  get_num_no_baggage_weight <- reactive({
     temp <- as.numeric(input$num_no_baggage)
     if(temp < 0) temp <- 0
     if(input$force_one == "1")
@@ -235,20 +238,16 @@ server <- function(input, output, session) {
     max(temp,0)
     })
   
-  get_num_baggage_all <- reactive({
+  get_num_baggage_all_weight <- reactive({
     temp <- as.numeric(input$num_baggage_all)
     return(max(temp, 0))
   })
-  
-  get_num_teams <- reactive({
-    if(input$num_teams <= 1 && !is.null(input$roster)) {
-      r1 <- read.csv(input$roster$datapath)
-      if(nrow(r1) > 14)
-        return(floor(nrow(r1)/15))
-      else return(2)
-    }
-    return(input$num_teams)
-  })
+  #'
+  #'
+  #' END: get parameters for building best roster.
+  #'
+  #'
+
   
   get_bag <- reactive({
     if(is.null(input$baggage) && !input$no_baggage) return(NULL)
@@ -314,12 +313,12 @@ server <- function(input, output, session) {
      if (is.null(input$roster) || (is.null(input$baggage) && TRUE))
       return(NULL)
     
-     weight_vec <- c(get_num_no_baggage(), 
+     weight_vec <- c(get_num_no_baggage_weight(), 
                     get_num_women_weight(), 
                     get_num_players_weight(), 
                     get_best_line_mean_weight(), 
                     get_team_mean_weight(),
-                    get_num_baggage_all()) 
+                    get_num_baggage_all_weight()) 
     
     
     my_scale <- get_my_scale()
@@ -357,38 +356,49 @@ server <- function(input, output, session) {
     }
     )
   
+  graph_layout <- reactive({
+    g_out <- get_out()
+    
+    
+  })
+ 
+  output$igraph_output<- renderPlot({
+    if(input$iterate_1 < 1 && input$goButton < 1) return(NULL)
+    g1 <- isolate(get_out())
+    roster <- isolate(g1$out$roster)
+    roster_long <- isolate(g1$out$roster_long)
+    createPlot(roster_long = roster_long, roster = roster)
+  })
   
-  vertex_info <- eventReactive(eventExpr = input$plot_click, valueExpr = {
-    
-    my_layout <- ig_layout
-    
-    d1 <- select(rosters_best$r1_long, Id, Baggage)
-    d2 <-  rosters_best$r1_long %>% group_by(Team) %>% transmute(B1 = first(Id),B2 = Id) %>% distinct(B1, B2) %>% ungroup() %>% select(B1, B2)
-    names(d2) <- c("Id", "Baggage")
-    
-    graph_df <- graph.data.frame(d = rbind(d1, d2), directed = FALSE)
-    graph_df <- simplify(graph_df, remove.loops = TRUE)
-    
-    id_loc <- which.min(abs(isolate(input$plot_click$x) - my_layout[,1]) + abs(isolate(input$plot_click$y) - my_layout[,2]))
+  
+   
+  output$vertex_info <- renderTable({
+    if(is.null(input$click)) return(NULL)
+    x_coord <- input$click$x
+    y_coord <- input$click$y
+    r1 <- isolate(rosters_best)
+    roster_long <- r1$r1_long
+    roster <- r1$r1
+    layout_long <- createLayout(roster_long = roster_long, roster = roster)
+    my_layout <- layout_long$layout
+    graph_df <- layout_long$graph_df
+    id_loc <- which.min(abs(isolate(input$click$x) - my_layout[,1]) + abs(isolate(input$click$y) - my_layout[,2]))
     id_for_display <- as.integer(V(graph_df)$name[id_loc])
-    team_for_display <- filter(rosters_best$r1, Id == id_for_display) %>% pull(Team)
-    gender_for_display <- ifelse(filter(rosters_best$r1, Id == id_for_display) %>% pull(Female) > 0, "Female", "Male")
-    baggage_for_display <- filter(rosters_best$r1_long, Id == id_for_display) %>% pull(Baggage) %>% as.character()
+    team_for_display <- filter(roster, Id == id_for_display) %>% pull(Team)
+    gender_for_display <- ifelse(filter(roster, Id == id_for_display) %>% pull(Female) > 0, "Female", "Male")
+    baggage_for_display <- filter(roster_long, Id == id_for_display) %>% pull(Baggage) %>% as.character()
     
     for_out <- data.frame(Id = id_for_display,
-                          Gender = gender_for_display, 
-                          Team = team_for_display, 
-                          Baggage_List = paste(baggage_for_display, sep = '', collapse = ' '),
-                          x = isolate(input$plot_click$x),
-                          y = isolate(input$plot_click$y),
+                          # Gender = gender_for_display, 
+                          # Team = team_for_display, 
+                          # Baggage_List = paste(baggage_for_display, sep = '', collapse = ' '),
+                          # x = isolate(input$plot_click$x),
+                          # y = isolate(input$plot_click$y),
                           stringsAsFactors = FALSE)
     
     return(for_out)
-  }
-  )
-   
-  output$vertex_info <- renderTable({
-    vertex_info()
+    
+    
   })
   
   output$table <- renderTable({
@@ -396,9 +406,7 @@ server <- function(input, output, session) {
     g_out$out2$team_data
   })
   
-  output$igraph_output <- renderPlot({
-    get_out()$igraph_plot
-  })
+
   
   output$num_no_baggage <- renderText({
     g_out <- get_out()
@@ -435,16 +443,14 @@ server <- function(input, output, session) {
     if(is.null(rosters_best$r1))
       return(NULL)
     g_out <- get_out()
-    r1 <- cbind(rosters_best$r1, ig_layout)
-    names(r1)[ncol(r1)] <- "y"
-    names(r1)[ncol(r1) - 1] <- "x"
+    r1 <- cbind(rosters_best$r1)
     new_female <- r1$Female
     new_female[r1$Female > 0] <- "F"
     new_female[r1$Female <= 0] <- "M"
     r1$Female <- new_female
     if("Name" %in% names(r1)){
-      return(r1 %>% dplyr::select(Id, Name, Power, Female, Team, x, y) %>% dplyr::arrange(Team, Female, desc(Power)))
-    } else return(r1 %>% dplyr::select(Id, Power, Female, Team,x , y) %>% dplyr::arrange(Team, Female, desc(Power)))
+      return(r1 %>% dplyr::select(Id, Name, Power, Female, Team) %>% dplyr::arrange(Team, Female, desc(Power)))
+    } else return(r1 %>% dplyr::select(Id, Power, Female, Team) %>% dplyr::arrange(Team, Female, desc(Power)))
     
     
     
