@@ -311,7 +311,7 @@ server <- function(input, output, session) {
                              num_iter = input$num_iter, 
                              men_per_line = get_num_men()
                              )
-      best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long, probs = probs)
+      best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long, probs = r1$probs)
       #write.csv(r1$roster, "data/debug_r1", row.names = FALSE)
       #write.csv(r1$roster_long, "data/debug_r1_long", row.names = FALSE)
     }
