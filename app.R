@@ -409,7 +409,7 @@ server <- function(input, output, session) {
   output$roster_by_team <- renderTable({
     if(is.null(best_roster$r1))
       return(NULL)
-    r1 <- best_roster
+    r1 <- best_roster$r1
     new_female <- r1$Female
     new_female[r1$Female > 0] <- "F"
     new_female[r1$Female <= 0] <- "M"
