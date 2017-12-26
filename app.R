@@ -1,8 +1,3 @@
-#'
-#' Not sure why the roster graph isn't working correctly. My current guess is that the order
-#' of the Id's is different in the layout than in V(graph_df)$names. But, I just don't know.
-#'
-#'
 library(shiny)
 library(dplyr)
 library(data.table)
@@ -130,12 +125,11 @@ ui <- fluidPage(
                  tags$li("If you like it, increase Iterate."),
                  tags$li("Sometimes you may need to play with relative importance, or force something to happen."),
                  tags$li("You can view the current roster under the Roster tab."),
-                 tags$li("You can also view a graphica visualization of the team structure under the Graph tab"),
+                 tags$li("You can also view a graphical visualization of the team structure under the Graph tab"),
+                 tags$li("In the Graph Tab, you can also click on any vertex to get information about that player. Dark colors indicate that the player received no baggage requests."),
                  tags$li("Before downloading, increase Scale to 20 or 100 and run one last time to get a locally good roster."),
                  tags$li("Download from the Download tab.")
                )
-               
-               
       ),
       tabPanel(title = "Diagnostics",value = "two",fluidRow(
         column(12,
@@ -256,7 +250,6 @@ server <- function(input, output, session) {
   #' END: get parameters for building best roster.
   #'
   #'
-
   
   get_bag <- reactive({
     if(is.null(input$baggage) && !input$no_baggage) return(NULL)
@@ -266,6 +259,12 @@ server <- function(input, output, session) {
     return(bag)
   })
 
+  #'
+  #'
+  #' BEGIN: MCMC roster builder
+  #'
+  #'
+  
   get_best_roster <- observeEvent(eventExpr = input$iterate_1 + input$goButton, priority = 0, handlerExpr = {
     
     #Before clicking on make my roster
@@ -326,6 +325,13 @@ server <- function(input, output, session) {
   }
   )
   
+  
+  #'
+  #'
+  #' BEGIN create outputs to use in ui
+  #'
+  #'
+  
   output$igraph_output <- renderPlot({
     if(input$iterate_1  + input$goButton < 1) return(NULL)
       createPlot(roster_long = best_roster$r1_long,  roster = best_roster$r1)  
@@ -360,17 +366,10 @@ server <- function(input, output, session) {
     
   })
   
-  
-
-  
-  
-  
   output$table <- renderTable({
     g_out <- get_roster_summary()
     g_out$team_data
   })
-  
-
   
   output$num_no_baggage <- renderText({
     g_out <- get_roster_summary()
@@ -382,15 +381,8 @@ server <- function(input, output, session) {
     g_out <- get_roster_summary()
     if(is.null(g_out)) return(NULL)
     paste("Number of baggage requests denied is", g_out$baggage_not_granted, "out of", g_out$total_baggage_requests)
-    
   })
  
-  #'
-  #' 
-  #'  This is currently broken. It would be better if it showed the range of probabilities
-  #'  rather than the current one.
-  #'   
-  #'     
   output$probs <- renderTable({
     g_out <- get_roster_summary()
     if(is.null(g_out)) return(NULL)
