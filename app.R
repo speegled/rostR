@@ -242,6 +242,15 @@ server <- function(input, output, session) {
     temp <- as.numeric(input$num_baggage_all)
     return(max(temp, 0))
   })
+  
+  get_weight_vec <- reactive({
+    c(get_num_no_baggage_weight(), 
+      get_num_women_weight(), 
+      get_num_players_weight(), 
+      get_best_line_mean_weight(), 
+      get_team_mean_weight(),
+      get_num_baggage_all_weight()) 
+  })
   #'
   #'
   #' END: get parameters for building best roster.
@@ -256,121 +265,70 @@ server <- function(input, output, session) {
     } else bag <- createHatDrawBaggage(roster)
     return(bag)
   })
-  
-  get_r1_and_r1_long <- reactive({
-    r1 <- read.csv(input$roster$datapath)
-    bag <- get_bag()
-    #'
-    #' Look at me and my defensive programming!
-    #'
-    names(r1) <- tolower(names(r1))
-    names(r1) <- str_replace_all(names(r1), "[^a-z]", "")
-    names(r1) <- stringi::stri_trans_totitle(names(r1))
-    if(checkRoster(r1) == -1)
-      stop("Please make sure roster is in correct format.")
-    if(ncol(bag) < 2)
-      stop("Please make sure baggage is in correct format.")
-    bag <- fixBaggage(r1, bag)
-    #'
-    #' End of defensive programming
-    #'
+
+  get_best_roster <- observeEvent(eventExpr = input$iterate_1 + input$goButton, priority = 1, handlerExpr = {
     
-    team_assignment <- data.frame(Id = unique(r1$Id))
-    team_assignment$Team <- c(sample(rep(1:get_num_teams(),floor(nrow(r1)/get_num_teams()))), sample(1:get_num_teams(), nrow(r1) %% get_num_teams()))
-    r1 <- left_join(r1, team_assignment)
-    scaled_Power <- scale(r1$Power)
-    r1$Raw_power <- r1$Power
-    r1$Power <- as.numeric(scaled_Power)
-    
-    
-    r1_long <- left_join(x = r1, y = bag, by = c("Id" = "Baggager"))
-    r1_long <- left_join(r1_long, team_assignment, by = c("Baggage" = "Id"), suffix = c("", "_baggage"))
-    r_value <- list(r1 = r1, r1_long = r1_long)
-    return(r_value)
-  })
-  
-  get_hover_pos <- reactive({
-    if(!is.null(input$plot_hover))
-      c(input$plot_hover$x, input$plot_hover$y)
-  })
-  
-  get_click_pos <- reactive({
-      input$plot_click
-  })
-  
-  iterate_or_go <- reactive({
-    paste(input$iterate_1, input$goButton)
-  })
-  
-  xxchange <- reactive({
-    paste(input$iterate_1 , input$goButton, input$plot_click)
-  })
-  
-  get_out <- eventReactive(eventExpr = {input$iterate_1 + input$goButton}, 
-    valueExpr = {
-     inFile <- input$file1
-    
-     if (is.null(input$roster) || (is.null(input$baggage) && TRUE))
-      return(NULL)
-    
-     weight_vec <- c(get_num_no_baggage_weight(), 
-                    get_num_women_weight(), 
-                    get_num_players_weight(), 
-                    get_best_line_mean_weight(), 
-                    get_team_mean_weight(),
-                    get_num_baggage_all_weight()) 
-    
-    
-    my_scale <- get_my_scale()
-    
-    
-    
-    if(is.null(rosters_best$r1)) {
-      r_value <- get_r1_and_r1_long()
-      r1 <- r_value$r1
-      r1_long <- r_value$r1_long
-      out <- find_best_roster(roster = r1, 
-                              roster_long = r1_long, 
-                              weight_vec = weight_vec, 
-                              my_scale = my_scale, 
-                              score_roster = score_roster,
-                              num_iter = input$num_iter,
-                              num_teams = get_num_teams(),
-                              men_per_line = get_num_men())
-      rosters_best <<- list(r1 = out$roster, r1_long = out$roster_long)
-    } else {
-      out <- find_best_roster(roster = rosters_best$r1, 
-                              roster_long = rosters_best$r1_long, 
-                              weight_vec = weight_vec, 
-                              my_scale = my_scale, 
-                              score_roster = score_roster,
-                              num_iter = input$num_iter,
-                              num_teams = get_num_teams(),
-                              men_per_line = get_num_men())
-      rosters_best <<- list(r1 = out$roster, r1_long = out$roster_long)
+    #Before clicking on make my roster
+    if(input$iterate_1 + input$goButton == 0) return(NULL)
+    #First time they click on make my roster
+    if(input$iterate_1 + input$goButton == 1) {
+      if(is.null(input$roster) || (is.null(input$baggage) && !input$no_baggage)){
+        stop("Please Enter File Before Making Roster")
+      }
+      r1 <- read.csv(input$roster$datapath)
+      bag <- get_bag()
+      names(r1) <- tolower(names(r1))
+      names(r1) <- str_replace_all(names(r1), "[^a-z]", "")
+      names(r1) <- stringi::stri_trans_totitle(names(r1))
+      if(checkRoster(r1) == -1)
+        stop("Please make sure roster is in correct format.")
+      if(ncol(bag) < 2)
+        stop("Please make sure baggage is in correct format.")
+      bag <- fixBaggage(r1, bag)
+      team_assignment <- data.frame(Id = unique(r1$Id))
+      #
+      #set.seed(1) uncomment in debug mode
+      #
+      # Note: this next line is part of a bug when not every team is assigned at least one woman.
+      team_assignment$Team <- c(sample(rep(1:get_num_teams(),floor(nrow(r1)/get_num_teams()))), sample(1:get_num_teams(), nrow(r1) %% get_num_teams()))
+      r1 <- left_join(r1, team_assignment)
+      scaled_Power <- scale(r1$Power)
+      r1$Raw_power <- r1$Power      
+      r1$Power <- as.numeric(scaled_Power)
+      
+      
+      r1_long <- left_join(x = r1, y = bag, by = c("Id" = "Baggager"))
+      r1_long <- left_join(r1_long, team_assignment, by = c("Baggage" = "Id"), suffix = c("", "_baggage"))
+      best_roster <<- list(r1 = r1, r1_long = r1_long)
+    } else{ #Subsequent times they click on make my roster
+      r1 <- find_best_roster(roster = best_roster$r1, 
+                             roster_long = best_roster$r1_long, 
+                             weight_vec = get_weight_vec(), 
+                             my_scale = get_my_scale(), 
+                             score_roster = score_roster, 
+                             num_teams = get_num_teams(), 
+                             num_iter = input$num_iter, 
+                             men_per_line = get_num_men()
+                             )
+      best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long)
+      #write.csv(r1$roster, "data/debug_r1", row.names = FALSE)
+      #write.csv(r1$roster_long, "data/debug_r1_long", row.names = FALSE)
     }
-    out2 <- score_roster_debug(roster_long = out$roster_long, out$roster, weight_vec = weight_vec, num_teams =  get_num_teams(),men_per_line = get_num_men())
-    igraph_plot <- createPlot(roster_long = out$roster_long, roster = out$roster)
-    ig_layout <<- createLayout(roster_long = out$roster_long, roster = out$roster) 
-    list(out = out, out2 = out2, igraph_plot = igraph_plot)
-    }
-    )
-  
-  graph_layout <- reactive({
-    g_out <- get_out()
-    
-    
-  })
- 
-  output$igraph_output<- renderPlot({
-    if(input$iterate_1 < 1 && input$goButton < 1) return(NULL)
-    g1 <- isolate(get_out())
-    roster <- isolate(g1$out$roster)
-    roster_long <- isolate(g1$out$roster_long)
-    createPlot(roster_long = roster_long, roster = roster)
   })
   
+  get_roster_summary <- eventReactive(eventExpr = input$iterate_1 + input$goButton, valueExpr = {
+    score_roster_debug(roster_long = best_roster$r1_long, 
+                       roster = best_roster$r1,
+                       weight_vec = get_weight_vec(),
+                       num_teams = get_num_teams(),
+                       men_per_line = get_num_men())
+  }
+  )
   
+  output$igraph_output <- renderPlot({
+    if(input$iterate_1  + input$goButton < 1) return(NULL)
+      createPlot(roster_long = best_roster$r1_long,  roster = best_roster$r1)  
+  })
    
   output$vertex_info <- renderTable({
     if(is.null(input$click)) return(NULL)
@@ -389,43 +347,48 @@ server <- function(input, output, session) {
     baggage_for_display <- filter(roster_long, Id == id_for_display) %>% pull(Baggage) %>% as.character()
     
     for_out <- data.frame(Id = id_for_display,
-                          # Gender = gender_for_display, 
-                          # Team = team_for_display, 
-                          # Baggage_List = paste(baggage_for_display, sep = '', collapse = ' '),
-                          # x = isolate(input$plot_click$x),
-                          # y = isolate(input$plot_click$y),
+                          Gender = gender_for_display, 
+                          Team = team_for_display, 
+                          Baggage_List = paste(baggage_for_display, sep = '', collapse = ' '),
+                          # x = isolate(input$click$x),
+                          # y = isolate(input$click$y),
                           stringsAsFactors = FALSE)
-    
     return(for_out)
-    
-    
   })
   
+  
+  
+  
   output$table <- renderTable({
-    g_out <- get_out()
-    g_out$out2$team_data
+    g_out <- get_roster_summary()
+    g_out$team_data
   })
   
 
   
   output$num_no_baggage <- renderText({
-    g_out <- get_out()
+    g_out <- get_roster_summary()
     if(is.null(g_out)) return(NULL)
-    paste("Number of players with no baggage is", g_out$out2$num_no_baggage, "out of", g_out$out2$num_requesting_baggage)
+    paste("Number of players with no baggage is", g_out$num_no_baggage, "out of", g_out$num_requesting_baggage)
   })
   
   output$num_baggage_missing <- renderText({
-    g_out <- get_out()
+    g_out <- get_roster_summary()
     if(is.null(g_out)) return(NULL)
-    paste("Number of baggage requests denied is", g_out$out2$baggage_not_granted, "out of", g_out$out2$total_baggage_requests)
+    paste("Number of baggage requests denied is", g_out$baggage_not_granted, "out of", g_out$total_baggage_requests)
     
   })
-  
+ 
+  #'
+  #' 
+  #'  This is currently broken. It would be better if it showed the range of probabilities
+  #'  rather than the current one.
+  #'   
+  #'     
   output$probs <- renderTable({
-    
-    g_out <- get_out()
+    g_out <- get_roster_summary()
     if(is.null(g_out)) return(NULL)
-    data.frame(max_prob = max(g_out$out$probs), min_prob = min(g_out$out$probs))
+    data.frame(current_score = max(g_out$prob))
   })
   
   output$maybe_done <- renderText({
