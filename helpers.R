@@ -22,7 +22,7 @@ createLayout <- function(roster_long, roster) {
   num_no_baggage <- sum((roster_long$Team != roster_long$Team_baggage), na.rm = TRUE)
   d1 <- select(roster_long, Id, Baggage)
   d1$weight <- 0.5
-  d2 <-  roster_long %>% group_by(Team) %>% transmute(B1 = first(Id),B2 = Id) %>% distinct(B1, B2) %>% ungroup() %>% select(B1, B2)
+  d2 <-  roster_long %>% group_by(Team) %>% transmute(B1 = dplyr::first(Id),B2 = Id) %>% distinct(B1, B2) %>% ungroup() %>% select(B1, B2)
   names(d2) <- c("Id", "Baggage")
   d2$weight <- 10 + num_no_baggage
   
@@ -31,7 +31,7 @@ createLayout <- function(roster_long, roster) {
   
   set.seed(1)
   my_layout <- norm_coords(layout_with_fr(graph_df))
-  return(my_layout)
+  return(list(layout = my_layout, graph_df = graph_df))
   
   }
 
@@ -41,14 +41,14 @@ createPlot <- function(roster_long, roster) {
   
   d1 <- select(roster_long, Id, Baggage)
   d1$weight <- 0.5
-  d2 <-  suppressMessages(roster_long %>% group_by(Team) %>% transmute(B1 = first(Id),B2 = Id) %>% distinct(B1, B2) %>% ungroup() %>% select(B1, B2))
+  d2 <-  roster_long %>% group_by(Team) %>% transmute(B1 = dplyr::first(Id),B2 = Id) %>% distinct(B1, B2) %>% ungroup() %>% select(B1, B2)
   names(d2) <- c("Id", "Baggage")
   d2$weight <- 10 + num_no_baggage
   
   graph_df <- graph.data.frame(d = rbind(d1, d2), directed = FALSE)
   graph_df <- simplify(graph_df, remove.loops = TRUE)
-  vertex_labels <- round(pull(roster, Raw_power)) 
-  vertex_colors <- ifelse(pull(roster, Female) > 0,"Pink", "Light Blue") 
+  vertex_labels <- round(arrange(roster, Id) %>% pull(Raw_power)) 
+  vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
   
   players_no_baggage <- setDT(roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
   #for(i in 1:length(players_no_baggage$Id)) {
@@ -62,7 +62,9 @@ createPlot <- function(roster_long, roster) {
   
   #team_df <- roster_long %>% group_by(Team) %>% distinct(Id) %>%  transmute(B1 = first(Id),B2 = Id) %>% distinct(B1, B2) 
   #team_g <- graph.data.frame(d = team_df[,2:3])
+  
   set.seed(1)
+  
   my_layout <- norm_coords(layout_with_fr(graph_df))
 
   graph_df <- delete_edges(graph_df, which(E(graph_df)$weight > 1))
@@ -317,7 +319,7 @@ find_best_roster <- function(roster, roster_long, weight_vec, my_scale = 200, sc
       }
     }
   }
-  list(roster = roster, roster_long = roster_long, probs = probs)
+  list(roster = roster, roster_long = roster_long)
 }
 
 
