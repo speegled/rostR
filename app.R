@@ -11,8 +11,8 @@ library(shinyBS)
 library(igraph)
 
 source("helpers.R")
-rosters_best <- list(r1 = NULL, r1_long = NULL)
-ig_layout <- NULL
+best_roster <- list(r1 = NULL, r1_long = NULL, probs = NULL)
+initial_roster <- NULL
 
 ui <- fluidPage(
   titlePanel("RostR"),
@@ -280,6 +280,7 @@ server <- function(input, output, session) {
       names(r1) <- tolower(names(r1))
       names(r1) <- str_replace_all(names(r1), "[^a-z]", "")
       names(r1) <- stringi::stri_trans_totitle(names(r1))
+      initial_roster <<- r1
       if(checkRoster(r1) == -1)
         stop("Please make sure roster is in correct format.")
       if(ncol(bag) < 2)
@@ -310,7 +311,7 @@ server <- function(input, output, session) {
                              num_iter = input$num_iter, 
                              men_per_line = get_num_men()
                              )
-      best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long)
+      best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long, probs = probs)
       #write.csv(r1$roster, "data/debug_r1", row.names = FALSE)
       #write.csv(r1$roster_long, "data/debug_r1_long", row.names = FALSE)
     }
@@ -388,25 +389,22 @@ server <- function(input, output, session) {
   output$probs <- renderTable({
     g_out <- get_roster_summary()
     if(is.null(g_out)) return(NULL)
-    data.frame(current_score = max(g_out$prob))
+    data.frame(worst_score = max(best_roster$probs), best_score = min(best_roster$probs), current_score = g_out$prob)
   })
   
   output$maybe_done <- renderText({
     req(input$num_iter)
-    g_out <- get_out()
-    if(is.null(g_out)) return(NULL)
+    g_out <- best_roster
+    if(is.null(g_out$probs)) return(NULL)
     if(input$num_iter < 1000) return(NULL)
-    if(sum(diff(g_out$out$probs) > 0) > sum(diff(g_out$out$probs) < 0)) 
-      paste("Algorithm seems to be wandering between essentially equally likely states. If this continues, consider changing increasing number of iterations or increasing scale.")
+    if(sum(diff(g_out$probs) > 0) > sum(diff(g_out$probs) < 0)) 
+      paste("Algorithm seems to be wandering between essentially equally likely states. If this continues, consider changing increasing number of iterations, increasing importance levels, or increasing scale.")
   })
   
-  output$text <- renderText("Test")
-  
   output$roster_by_team <- renderTable({
-    if(is.null(rosters_best$r1))
+    if(is.null(best_roster$r1))
       return(NULL)
-    g_out <- get_out()
-    r1 <- cbind(rosters_best$r1)
+    r1 <- best_roster
     new_female <- r1$Female
     new_female[r1$Female > 0] <- "F"
     new_female[r1$Female <= 0] <- "M"
@@ -414,47 +412,40 @@ server <- function(input, output, session) {
     if("Name" %in% names(r1)){
       return(r1 %>% dplyr::select(Id, Name, Power, Female, Team) %>% dplyr::arrange(Team, Female, desc(Power)))
     } else return(r1 %>% dplyr::select(Id, Power, Female, Team) %>% dplyr::arrange(Team, Female, desc(Power)))
-    
-    
-    
-    
   })
  
-
-
-  
   output$iteration_warning <- renderText({
     req(input$num_iter)
-    if(input$num_iter <= 200 & input$goButton >4) 
+    if(input$num_iter <= 200 & (input$goButton + input$iterate_1 >4)) 
       return(paste("Number of iterations set to 200 initially so you could get a feel for whether algorithm is working. Consider increasing iterations to 2000."))
     return(NULL)
   })
   
   output$lots_of_iterations <- renderText({
-    if(input$goButton == 20)
-      return(paste("You've done a lot of runs now. Consider raising the number of iterations. Once you are more or less happy, run one last time with scale equal to 10 to find a good roster close to current roster listed."))
+    if((input$goButton + input$iterate_1) == 20)
+      return(paste("You've done a lot of runs now. Consider raising the number of iterations. Once you are more or less happy, run one last time after increasing scale significantly to find a good roster close to current roster listed."))
     return(NULL)
   })
   
   output$downloadData <- downloadHandler(
     filename = "roster.csv",
     content = function(file) {
-      if("Name" %in% names(rosters_best$r1)) {
-        write.csv(arrange(rosters_best$r1, Team, Female, Name), file, row.names = FALSE)
-      } else write.csv(arrange(rosters_best$r1, Team, Female), file, row.names = FALSE)
+      return_roster <- left_join(best_roster$r1, initial_roster, by = "Id")
+      if("Name" %in% names(best_roster$r1)) {
+        write.csv(arrange(return_roster, Team, Female, Name), file, row.names = FALSE)
+      } else write.csv(arrange(return_roster, Team, Female), file, row.names = FALSE)
     }
   )
   
-  observeEvent(iterate_or_go(), {
-    if(input$iterate_1 > 0 || input$goButton > 0)
-      updateTabsetPanel(session, "inTabset", selected = "two")
+  observeEvent(eventExpr = input$iterate_1 + input$goButton, handlerExpr = 
+    {
+      if(input$iterate_1 > 0 || input$goButton > 0)
+        updateTabsetPanel(session, "inTabset", selected = "two")
   })
   
   observeEvent(input$iterate_1, {
     updateActionButton(session, "iterate_1", label = "Iterate")
   })
-  
-  
 }
 
 
