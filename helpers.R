@@ -319,7 +319,7 @@ find_best_roster <- function(roster, roster_long, weight_vec, my_scale = 200, sc
       }
     }
   }
-  list(roster = roster, roster_long = roster_long)
+  list(roster = roster, roster_long = roster_long, probs = probs)
 }
 
 
