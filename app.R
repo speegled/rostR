@@ -335,7 +335,7 @@ server <- function(input, output, session) {
     if(is.null(input$click)) return(NULL)
     x_coord <- input$click$x
     y_coord <- input$click$y
-    r1 <- isolate(rosters_best)
+    r1 <- best_roster
     roster_long <- r1$r1_long
     roster <- r1$r1
     layout_long <- createLayout(roster_long = roster_long, roster = roster)
@@ -351,12 +351,17 @@ server <- function(input, output, session) {
                           Gender = gender_for_display, 
                           Team = team_for_display, 
                           Baggage_List = paste(baggage_for_display, sep = '', collapse = ' '),
-                          # x = isolate(input$click$x),
-                          # y = isolate(input$click$y),
+                          # x = isolate(input$plot_click$x),
+                          # y = isolate(input$plot_click$y),
                           stringsAsFactors = FALSE)
+    
     return(for_out)
+    
+    
   })
   
+  
+
   
   
   
