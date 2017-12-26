@@ -50,15 +50,16 @@ createPlot <- function(roster_long, roster) {
   vertex_labels <- round(arrange(roster, Id) %>% pull(Raw_power)) 
   vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
   
-  players_no_baggage <- setDT(roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
-  #for(i in 1:length(players_no_baggage$Id)) {
-  #  if(players_no_baggage$No_baggage[i]) {
-  #    vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
-  #      vertex_colors[i] <- "Hot Pink"
-  #      } else vertex_colors[i] <- "deepskyblue"
-      #vertex_labels[i] <- paste(vertex_labels[i], roster$Female[i] > 0)
-  #  }
-  #}
+  arranged_roster_long <- arrange(roster_long, Id)
+  players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
+  for(i in 1:length(players_no_baggage$Id)) {
+    if(players_no_baggage$No_baggage[i]) {
+      vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
+        vertex_colors[i] <- "Hot Pink"
+        } else vertex_colors[i] <- "deepskyblue"
+      vertex_labels[i] <- paste(vertex_labels[i], roster$Female[i] > 0)
+    }
+  }
   
   #team_df <- roster_long %>% group_by(Team) %>% distinct(Id) %>%  transmute(B1 = first(Id),B2 = Id) %>% distinct(B1, B2) 
   #team_g <- graph.data.frame(d = team_df[,2:3])
