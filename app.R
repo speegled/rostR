@@ -266,7 +266,7 @@ server <- function(input, output, session) {
     return(bag)
   })
 
-  get_best_roster <- observeEvent(eventExpr = input$iterate_1 + input$goButton, priority = 1, handlerExpr = {
+  get_best_roster <- observeEvent(eventExpr = input$iterate_1 + input$goButton, priority = 0, handlerExpr = {
     
     #Before clicking on make my roster
     if(input$iterate_1 + input$goButton == 0) return(NULL)
@@ -409,6 +409,7 @@ server <- function(input, output, session) {
   output$roster_by_team <- renderTable({
     if(is.null(best_roster$r1))
       return(NULL)
+    input$iterate_1 + input$goButton
     r1 <- best_roster$r1
     new_female <- r1$Female
     new_female[r1$Female > 0] <- "F"
