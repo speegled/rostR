@@ -18,7 +18,9 @@ ui <- fluidPage(
         tabPanel("File Input",
                  fileInput("roster", h4("Player file")),
                  fileInput("baggage", h4("Baggage file")),
-                 checkboxInput("no_baggage", label = "No Baggage"),
+                 fluidRow(
+                   column(6, checkboxInput("no_baggage", label = "No Baggage")),
+                   column(6, checkboxInput("use_default", label = "Use Test Data"))),
                  fluidRow(
                    column(6,
                           numericInput("num_teams", h4("Number of Teams"), step = 1, min = 1, max = 100, value = 1),
@@ -173,8 +175,10 @@ server <- function(input, output, session) {
   #'
   
   get_num_teams <- reactive({
-    if(input$num_teams <= 1 && !is.null(input$roster)) {
-      r1 <- read.csv(input$roster$datapath)
+    if(input$num_teams <= 1 && (!is.null(input$roster) || input$use_default)) {
+      if(!input$use_default){
+        r1 <- read.csv(input$roster$datapath)
+      } else r1 <- read.csv("data/roster_consecutive")
       if(nrow(r1) > 14)
         return(floor(nrow(r1)/15))
       else return(2)
@@ -252,10 +256,14 @@ server <- function(input, output, session) {
   #'
   
   get_bag <- reactive({
-    if(is.null(input$baggage) && !input$no_baggage) return(NULL)
+    if(is.null(input$baggage) && !input$no_baggage && !input$use_default) return(NULL)
     if(!is.null(input$baggage)) {
       bag <- read.csv(input$baggage$datapath)
-    } else bag <- createHatDrawBaggage(roster)
+    }  
+    if(input$no_baggage)
+      bag <- createHatDrawBaggage(roster)
+    if(input$use_default)
+      bag <- read.csv("data/bag_consecutive")
     return(bag)
   })
 
@@ -271,10 +279,15 @@ server <- function(input, output, session) {
     if(input$iterate_1 + input$goButton == 0) return(NULL)
     #First time they click on make my roster
     if(input$iterate_1 + input$goButton == 1) {
-      if(is.null(input$roster) || (is.null(input$baggage) && !input$no_baggage)){
+      #TODO pull this out into get_roster <- reactive()
+      if((is.null(input$roster) || (is.null(input$baggage) && !input$no_baggage)) && !input$use_default){
         stop("Please Enter File Before Making Roster")
       }
-      r1 <- read.csv(input$roster$datapath)
+      if(!input$use_default)
+        r1 <- read.csv(input$roster$datapath)
+      if(input$use_default)
+        r1 <- read.csv("data/roster_consecutive")
+      #END: TODO
       bag <- get_bag()
       names(r1) <- tolower(names(r1))
       names(r1) <- str_replace_all(names(r1), "[^a-z]", "")
