@@ -90,7 +90,7 @@ createPlot <- function(roster_long, roster) {
     #}
   
   #legend('topright', legend = c("No Baggage M", "No Baggage F"), col = c("Hot pink", "deepskyblue"), pch = 16)  
-  plot(graph_df, vertex.size = 5, vertex.color = vertex_colors,mark.groups = team_groups, rescale = FALSE, layout = my_layout, vertex.label = vertex_labels, arrow.width = 0, arrow.size = 0, arrow.mode = 0, vertex.alpha = 0.2, vertex.label.cex = 0.7)
+  plot(graph_df, vertex.size = 5, vertex.color = vertex_colors,mark.groups = team_groups, rescale = FALSE, layout = my_layout, vertex.label = vertex_labels, arrow.width = 0, arrow.size = 0, arrow.mode = 0, vertex.alpha = 0.1, vertex.label.cex = 0.7)
   #if(!is.null(id_loc))
   #   legend(x = -1, y = 1,cex = 0.5, paste("Id = ", id_for_display, gender_for_display, "Baggage ", baggage_for_display ))
 
