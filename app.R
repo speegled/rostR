@@ -336,7 +336,7 @@ server <- function(input, output, session) {
     roster_long <- best_roster$r1_long
     vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
     
-    arranged_roster_long <- arrange(roster_long, Id)
+    arranged_roster_long <- roster_long
     players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
     for(i in 1:length(players_no_baggage$Id)) {
       if(players_no_baggage$No_baggage[i]) {
@@ -345,6 +345,7 @@ server <- function(input, output, session) {
         } else vertex_colors[i] <- "deepskyblue"
       }
     }
+    vertex_colors <<- vertex_colors
     vertex_colors_old <<- vertex_colors
   })
   
