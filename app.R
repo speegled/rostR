@@ -330,6 +330,8 @@ server <- function(input, output, session) {
                              )
       best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long, probs = r1$probs)
     }
+    
+    #Every time they click iterate, we recalculate the vertex colors
     roster <- best_roster$r1
     roster_long <- best_roster$r1_long
     vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
@@ -343,7 +345,6 @@ server <- function(input, output, session) {
         } else vertex_colors[i] <- "deepskyblue"
       }
     }
-    
     vertex_colors_old <<- vertex_colors
   })
   
@@ -372,10 +373,12 @@ observeEvent(eventExpr = input$click, handlerExpr = {
       my_layout <- all_layout$layout
       graph_df <- all_layout$graph_df
       id_loc <- which.min(abs(input$click$x - my_layout[,1]) + abs(input$click$y - my_layout[,2]))
-      id_for_display <- as.integer(V(graph_df)$name[id_loc])
-      arranged_roster_long <- arrange(roster_long, Id)
-      baggage_click <- sapply(filter(arranged_roster_long, Id == id_for_display) %>% pull(Baggage), function(x) which(arrange(roster, Id) %>% pull(Id) == x) )
-      vertex_colors[unlist(baggage_click)] <- "green"
+      id_for_display <- V(graph_df)$name[id_loc]
+      #graph.data.frame arranges vertices in order of unique(as.vector(mat)), where mat is the matrix of edges
+      #V(graph_df)$name is the same as unique(as.vector(as.matrix(select(roster_long, Id, Baggage))))
+      baggage_click <- sapply(filter(roster_long, Id == id_for_display) %>% pull(Baggage), function(x) which(V(graph_df)$name == x) )
+      vertex_colors[unlist(baggage_click)] <- "floralwhite"
+      vertex_colors[id_loc] <- "yellow"
       vertex_colors <<- vertex_colors
     }
   })
@@ -400,7 +403,7 @@ observeEvent(eventExpr = input$click, handlerExpr = {
     my_layout <- layout_long$layout
     graph_df <- layout_long$graph_df
     id_loc <- which.min(abs(isolate(input$click$x) - my_layout[,1]) + abs(isolate(input$click$y) - my_layout[,2]))
-    id_for_display <- as.integer(V(graph_df)$name[id_loc])
+    id_for_display <- V(graph_df)$name[id_loc]
     team_for_display <- filter(roster, Id == id_for_display) %>% pull(Team)
     gender_for_display <- ifelse(filter(roster, Id == id_for_display) %>% pull(Female) > 0, "Female", "Male")
     baggage_for_display <- filter(roster_long, Id == id_for_display) %>% pull(Baggage) %>% as.character()
@@ -481,16 +484,15 @@ observeEvent(eventExpr = input$click, handlerExpr = {
   output$downloadData <- downloadHandler(
     filename = "roster.csv",
     content = function(file) {
-      return_roster <- left_join(best_roster$r1, initial_roster, by = "Id")
       if("Name" %in% names(best_roster$r1)) {
-        write.csv(arrange(return_roster, Team, Female, Name), file, row.names = FALSE)
-      } else write.csv(arrange(return_roster, Team, Female), file, row.names = FALSE)
+        write.csv(arrange(best_roster$r1, Team, Female, Name), file, row.names = FALSE)
+      } else write.csv(arrange(best_roster$r1, Team, Female), file, row.names = FALSE)
     }
   )
   
   observeEvent(eventExpr = input$iterate_1 + input$goButton, handlerExpr = 
     {
-      if(input$iterate_1 > 0 || input$goButton > 0)
+      if(input$iterate_1+ input$goButton == 1)
         updateTabsetPanel(session, "inTabset", selected = "two")
   })
   
