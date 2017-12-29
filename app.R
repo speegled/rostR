@@ -169,6 +169,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   vertex_colors <- NULL
+  vertex_colors_old <- NULL
   for_out_global <- NULL
   
   
@@ -277,7 +278,7 @@ server <- function(input, output, session) {
   #'
   #'
   
-  get_best_roster <- observeEvent(eventExpr = input$iterate_1 + input$goButton, priority = 0, handlerExpr = {
+  get_best_roster <- observeEvent(eventExpr = input$iterate_1 + input$goButton, handlerExpr = {
     
     #Before clicking on make my roster
     if(input$iterate_1 + input$goButton == 0) return(NULL)
@@ -328,9 +329,22 @@ server <- function(input, output, session) {
                              men_per_line = get_num_men()
                              )
       best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long, probs = r1$probs)
-      #write.csv(r1$roster, "data/debug_r1", row.names = FALSE)
-      #write.csv(r1$roster_long, "data/debug_r1_long", row.names = FALSE)
     }
+    roster <- best_roster$r1
+    roster_long <- best_roster$r1_long
+    vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
+    
+    arranged_roster_long <- arrange(roster_long, Id)
+    players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
+    for(i in 1:length(players_no_baggage$Id)) {
+      if(players_no_baggage$No_baggage[i]) {
+        vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
+          vertex_colors[i] <- "Hot Pink"
+        } else vertex_colors[i] <- "deepskyblue"
+      }
+    }
+    
+    vertex_colors_old <<- vertex_colors
   })
   
   get_roster_summary <- eventReactive(eventExpr = input$iterate_1 + input$goButton, valueExpr = {
@@ -349,42 +363,11 @@ server <- function(input, output, session) {
   #'
   #'
   
-  observeEvent(eventExpr = input$iterate_1 + input$goButton, handlerExpr = {
-    if(!is.null(best_roster)) {
-      roster <- best_roster$r1
-      roster_long <- best_roster$r1_long
-      vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
-      
-      arranged_roster_long <- arrange(roster_long, Id)
-      players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
-      for(i in 1:length(players_no_baggage$Id)) {
-        if(players_no_baggage$No_baggage[i]) {
-          vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
-            vertex_colors[i] <- "Hot Pink"
-          } else vertex_colors[i] <- "deepskyblue"
-        }
-      }
-      
-    }
-    vertex_colors <<- vertex_colors
-  })
-  
-  observeEvent(eventExpr = input$click, handlerExpr = {
+observeEvent(eventExpr = input$click, handlerExpr = {
     if(!is.null(input$click)) {
-      roster <- best_roster$r1
+      vertex_colors <- vertex_colors_old
       roster_long <- best_roster$r1_long
-      #Reset colors
-      vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
-      arranged_roster_long <- arrange(roster_long, Id)
-      players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
-      for(i in 1:length(players_no_baggage$Id)) {
-        if(players_no_baggage$No_baggage[i]) {
-          vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
-            vertex_colors[i] <- "Hot Pink"
-          } else vertex_colors[i] <- "deepskyblue"
-        }
-      }
-      
+      roster <- best_roster$r1
       all_layout <- createLayout(roster_long, roster)
       my_layout <- all_layout$layout
       graph_df <- all_layout$graph_df
@@ -392,7 +375,7 @@ server <- function(input, output, session) {
       id_for_display <- as.integer(V(graph_df)$name[id_loc])
       arranged_roster_long <- arrange(roster_long, Id)
       baggage_click <- sapply(filter(arranged_roster_long, Id == id_for_display) %>% pull(Baggage), function(x) which(arrange(roster, Id) %>% pull(Id) == x) )
-      vertex_colors[unlist(baggage_click)] <- "yellow"
+      vertex_colors[unlist(baggage_click)] <- "green"
       vertex_colors <<- vertex_colors
     }
   })
@@ -400,6 +383,8 @@ server <- function(input, output, session) {
   output$igraph_output <- renderPlot({
     if(input$iterate_1  + input$goButton < 1) return(NULL)
     click <- input$click
+    if(is.null(vertex_colors)) 
+      vertex_colors <- vertex_colors_old
     createPlot(roster_long = best_roster$r1_long,  roster = best_roster$r1, vertex_colors)
   })
    
