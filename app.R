@@ -6,7 +6,7 @@ library(shinyBS)
 library(igraph)
 
 source("helpers.R")
-best_roster <- list(r1 = NULL, r1_long = NULL, probs = NULL)
+best_roster <-   NULL
 initial_roster <- NULL
 
 ui <- fluidPage(
@@ -167,6 +167,10 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
+  
+  vertex_colors <- NULL
+  for_out_global <- NULL
+  
   
   #'
   #'
@@ -345,15 +349,65 @@ server <- function(input, output, session) {
   #'
   #'
   
+  observeEvent(eventExpr = input$iterate_1 + input$goButton, handlerExpr = {
+    if(!is.null(best_roster)) {
+      roster <- best_roster$r1
+      roster_long <- best_roster$r1_long
+      vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
+      
+      arranged_roster_long <- arrange(roster_long, Id)
+      players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
+      for(i in 1:length(players_no_baggage$Id)) {
+        if(players_no_baggage$No_baggage[i]) {
+          vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
+            vertex_colors[i] <- "Hot Pink"
+          } else vertex_colors[i] <- "deepskyblue"
+        }
+      }
+      
+    }
+    vertex_colors <<- vertex_colors
+  })
+  
+  observeEvent(eventExpr = input$click, handlerExpr = {
+    if(!is.null(input$click)) {
+      roster <- best_roster$r1
+      roster_long <- best_roster$r1_long
+      #Reset colors
+      vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
+      arranged_roster_long <- arrange(roster_long, Id)
+      players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
+      for(i in 1:length(players_no_baggage$Id)) {
+        if(players_no_baggage$No_baggage[i]) {
+          vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
+            vertex_colors[i] <- "Hot Pink"
+          } else vertex_colors[i] <- "deepskyblue"
+        }
+      }
+      
+      all_layout <- createLayout(roster_long, roster)
+      my_layout <- all_layout$layout
+      graph_df <- all_layout$graph_df
+      id_loc <- which.min(abs(input$click$x - my_layout[,1]) + abs(input$click$y - my_layout[,2]))
+      id_for_display <- as.integer(V(graph_df)$name[id_loc])
+      arranged_roster_long <- arrange(roster_long, Id)
+      baggage_click <- sapply(filter(arranged_roster_long, Id == id_for_display) %>% pull(Baggage), function(x) which(arrange(roster, Id) %>% pull(Id) == x) )
+      vertex_colors[unlist(baggage_click)] <- "yellow"
+      vertex_colors <<- vertex_colors
+    }
+  })
+  
   output$igraph_output <- renderPlot({
     if(input$iterate_1  + input$goButton < 1) return(NULL)
-      createPlot(roster_long = best_roster$r1_long,  roster = best_roster$r1)  
+    click <- input$click
+    createPlot(roster_long = best_roster$r1_long,  roster = best_roster$r1, vertex_colors)
   })
    
   output$vertex_info <- renderTable({
-    if(is.null(input$click)) return(NULL)
-    x_coord <- input$click$x
-    y_coord <- input$click$y
+    if(is.null(input$click)) {
+      for_out <<- for_out_global
+      return(for_out)
+    }
     r1 <- best_roster
     roster_long <- r1$r1_long
     roster <- r1$r1
@@ -365,7 +419,7 @@ server <- function(input, output, session) {
     team_for_display <- filter(roster, Id == id_for_display) %>% pull(Team)
     gender_for_display <- ifelse(filter(roster, Id == id_for_display) %>% pull(Female) > 0, "Female", "Male")
     baggage_for_display <- filter(roster_long, Id == id_for_display) %>% pull(Baggage) %>% as.character()
-    
+
     for_out <- data.frame(Id = id_for_display,
                           Gender = gender_for_display, 
                           Team = team_for_display, 
@@ -373,6 +427,7 @@ server <- function(input, output, session) {
                           # x = isolate(input$plot_click$x),
                           # y = isolate(input$plot_click$y),
                           stringsAsFactors = FALSE)
+    for_out_global <<- for_out
     
     return(for_out)
     
