@@ -35,7 +35,7 @@ createLayout <- function(roster_long, roster) {
   
   }
 
-createPlot <- function(roster_long, roster) {
+createPlot <- function(roster_long, roster, vertex_colors) {
 
   num_no_baggage <- sum((roster_long$Team != roster_long$Team_baggage), na.rm = TRUE)
   
@@ -48,16 +48,18 @@ createPlot <- function(roster_long, roster) {
   graph_df <- graph.data.frame(d = rbind(d1, d2), directed = FALSE)
   graph_df <- simplify(graph_df, remove.loops = TRUE)
   vertex_labels <- round(arrange(roster, Id) %>% pull(Raw_power)) 
-  vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
-  
   arranged_roster_long <- arrange(roster_long, Id)
   players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
-  for(i in 1:length(players_no_baggage$Id)) {
-    if(players_no_baggage$No_baggage[i]) {
-      vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
-        vertex_colors[i] <- "Hot Pink"
-        } else vertex_colors[i] <- "deepskyblue"
-      vertex_labels[i] <- paste(vertex_labels[i], roster$Female[i] > 0)
+  
+  if(missing(vertex_colors)) {
+    vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
+    for(i in 1:length(players_no_baggage$Id)) {
+      if(players_no_baggage$No_baggage[i]) {
+        vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
+          vertex_colors[i] <- "Hot Pink"
+          } else vertex_colors[i] <- "deepskyblue"
+        vertex_labels[i] <- paste(vertex_labels[i], roster$Female[i] > 0)
+      }
     }
   }
   
@@ -65,9 +67,7 @@ createPlot <- function(roster_long, roster) {
   #team_g <- graph.data.frame(d = team_df[,2:3])
   
   set.seed(1)
-  
   my_layout <- norm_coords(layout_with_fr(graph_df))
-
   graph_df <- delete_edges(graph_df, which(E(graph_df)$weight > 1))
   team_groups <-  lapply(unique(roster_long$Team), function(x) filter(roster_long, Team == x) %>% distinct(Id) %>% pull(Id) %>% as.character)
   
@@ -77,17 +77,6 @@ createPlot <- function(roster_long, roster) {
   
     
   id_loc <- NULL
-  # if(!is.null(click_pos)) {
-   # if(min(abs(click_pos$x - my_layout[,1]) + abs(click_pos$y - my_layout[,2])) < .5) {
-   #   id_loc <- which.min(abs(click_pos$x - my_layout[,1]) + abs(click_pos$y - my_layout[,2]))
-  #    id_for_display <- as.integer(V(graph_df)$name[id_loc])
-  #    gender_for_display <- ifelse(filter(roster, Id == id_for_display) %>% pull(Female) > 0, "Female", "Male")
-  #    baggage_for_display <- filter(roster_long, Id == id_for_display) %>% pull(Baggage) %>% as.character()
-    #} else {
-    #  id_loc <- NULL
-    #  id_for_display <- NULL
-    #  gender_for_display <- NULL
-    #}
   
   #legend('topright', legend = c("No Baggage M", "No Baggage F"), col = c("Hot pink", "deepskyblue"), pch = 16)  
   plot(graph_df, vertex.size = 5, vertex.color = vertex_colors,mark.groups = team_groups, rescale = FALSE, layout = my_layout, vertex.label = vertex_labels, arrow.width = 0, arrow.size = 0, arrow.mode = 0, vertex.alpha = 0.1, vertex.label.cex = 0.7)
