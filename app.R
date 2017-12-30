@@ -23,10 +23,10 @@ ui <- fluidPage(
                    column(6, checkboxInput("use_default", label = "Use Test Data"))),
                  fluidRow(
                    column(6,
-                          numericInput("num_teams", h4("Number of Teams"), step = 1, min = 1, max = 100, value = 1),
-                          bsTooltip("num_teams", "Set this before Iterating the first time.", placement = "bottom")
+                          numericInput("num_teams", h5("Number of Teams"), step = 1, min = 1, max = 100, value = 1),
+                          bsTooltip("num_teams", "Optional", placement = "bottom")
                    ),
-                   column(6, selectInput("gender_ratio", h4("Gender Ratio (M/F)"), 
+                   column(6, selectInput("gender_ratio", h5("Gender Ratio (M/F)"), 
                                          choices = list("7/0" = 7, "6/1" = 6, "5/2" = 5, "4/3" = 4, "3/4" = 3, "2/5" = 2, "1/6" = 1, "0/7" = 0), selected = 5),
                           bsTooltip("gender_ratio", "Used for Power Calculation. Default is 5/2", placement = "bottom")
                    )
@@ -38,44 +38,44 @@ ui <- fluidPage(
                    column(6, numericInput("num_iter", h3("Number of Iterations"), value = 200)),
                    column(6, align = "center", style = "margin-top: 85px;", actionButton("goButton", "Iterate"), style="color: #FFFF33; background-color: #337ab7; border-color: #2e6da4")
                  ),
-                 h2("Relative Weights"),
+                 h4("Relative Weights"),
                  fluidRow (
                    column(4,
-                          numericInput("team_mean_weight", h4("Team Power"), step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("team_mean_weight", h5("Team Power"), step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("team_mean_weight", "Tries to have the mean power rating of each team equal", placement = "top")
                    ),
                    column(4,
-                          numericInput("best_line_mean_weight", h4("U-Line Power"),  step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("best_line_mean_weight", h5("U-Line Power"),  step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("best_line_mean_weight", "Mean power rating of best seven players (by gender ratio) equal", placement = "top")
                    ),
                    column(4,
-                          numericInput("num_women_weight", h4("Women Per Team"), step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("num_women_weight", h5("Women Per Team"), step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("num_women_weight", "Number of women on each team the same", placement = "top")
                    )
                  ),
                  fluidRow(
                    column(4,
-                          numericInput("num_players_weight", h4("Players per Team"),  step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("num_players_weight", h5("Players per Team"),  step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("num_players_weight", "Number of players on each team the same. (Not implemented)", placement = "top")
                    ),
                    column(4,
-                          numericInput("num_no_baggage", h4("Granting at least one Baggage"),  step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("num_no_baggage", h5("One Baggage"),  step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("num_no_baggage", "Minimizes number of people who get none of their requested baggage", placement = "top")
                    ),
                    column(4,
-                          numericInput("num_baggage_all", h4("Granting Baggage"), step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("num_baggage_all", h5("Baggage Requests"), step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("num_baggage_all", "Minimizes number of baggage requests denied", placement = "top")
                    )
                  ),
                  h2("Other Options"), 
                  fluidRow (
                    column(4,
-                          radioButtons("force_one", h4("Force"),
+                          radioButtons("force_one", h5("Force"),
                                        choices = list("One Baggage" = 1, "Women on Roster" = 2, "Both" = 3, "Neither" = 4),selected = 4),
                           bsTooltip("force_one", "Force everyone to have at least one baggage or equal women on roster. Forcing both is not recommended...", placement = "bottom")
                    ),
                    column(4,
-                          numericInput("my_scale", h4("Scale for Metropolis-Hastings"), step = 0.05,min = .05,max = 200, value = 1),
+                          numericInput("my_scale", h5("Scale for Metropolis-Hastings"), step = 0.05,min = .05,max = 200, value = 1),
                           bsTooltip("my_scale", "Larger ignores worse rosters in MCMC. Try changing by 10% to start.", placement = "bottom")
                    )
                  )
@@ -101,6 +101,9 @@ ui <- fluidPage(
                tags$br(),
                tags$br(),
                "In the default version, RostR tries to put each player on the same team with at least one person that they requested. It also tries to have similar number of women on each team. Given those two, it tries to make the relative strengths of the best 7 players on a team, and the relative strength of all players on a team, more or less equal. Finally, it tries to grant as many individual baggage requests as possible. If you play around with the program, you'll see that it doesn't necessarily do all of those things in that order, but that is roughly the priority assigned. Here are the instructions for getting started.",
+               tags$br(),
+               tags$br(),
+               "If you just want to see how the program works, choose Use Test Data and click on Start Making My Rosters.",
                tags$hr(),
                tags$hr(),
                h3("Upload Players"),
@@ -110,19 +113,20 @@ ui <- fluidPage(
                           tags$li("Required variable names are Id, Power and Female"),
                           tags$li("Optional variable name is Name"),
                           tags$li("Additional variable names are allowed and returned unchanged with final roster."),
-                          tags$li("Suggestions:",
-                                  tags$ol(tags$li("Id is a small integer."), tags$li("Power is an integer between 0 and 100"), tags$li("Female is 1 if female, 0 otherwise. (This is more than a suggestion).")))
+                          tags$li("Strong Suggestions:",
+                                  tags$ol(tags$li("Id is a small integer. Non-integer Id's not currently supported."), tags$li("Power is an integer between 0 and 100. Power must be numeric."), tags$li("Female is 1 if female, 0 otherwise.")))
                           
                           
                         ),
                h3("Upload Baggage"),
                tags$ol(
-                 tags$li("The baggage file is optional. There are two required columns and one optional column."),
+                 tags$li("The baggage file is optional. If you have no baggage, choose No Baggage before continuing. You will also probably need to change Scale for Metropolis-Hastings (in Fine Control tab) to 5 or 10."),
+                 tags$li("If included, baggage must be in csv format. There are two required columns and one optional column."),
                  tags$li("The names of the columns are ignored, but should be included in the file."),
                  tags$li("The first column contains the Id of people requesting to play on the same team as someone else."),
                  tags$li("The second column contains the Id of the person the requester wants to play with."),
                  tags$li("The third column is an optional weight to assign to the baggage request."),
-                 tags$li("Negative weights mean that those two players do not want to be on the same team."),
+                 tags$li("Negative weights mean that those two players do not want to be on the same team; however, negative weights are not currently fully supported."),
                  tags$li("The weights are rescaled to have mean absolute value of 1, so only the relative weights are imortant.")
                         ),
                h3("Run the Builder"),
@@ -168,11 +172,9 @@ ui <- fluidPage(
                  plotOutput('igraph_output', height = "1000px", click = "click", hover = hoverOpts(
                    id = "plot_hover")
                    )
-)
+                 )
                )
-               
-               
-    )
+      )
     )
   )
 )
