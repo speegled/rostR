@@ -94,6 +94,7 @@ ui <- fluidPage(
     ),
     mainPanel(tabsetPanel(id = "inTabset",
       tabPanel(title = "Welcome", value = "one",
+               wellPanel(id = "tPanel",style = "overflow-y:scroll; max-height: 600px",
                h2("Welcome to RostR, an MCMC Interactive Roster Builder"),
                tags$br(),
                "RostR uses Markov Chain Monte Carlo to assign players to teams. When assigning players, there are competing goals. Friends want to play on the same team. Teams should be reasonably competitive. If it is a mixed league, the gender rations of the teams should be similar. RostR allows users to assign importance levels to the various competing goals, and finds a roster which is suited to those goals.",
@@ -139,6 +140,7 @@ ui <- fluidPage(
                  tags$li("In the Graph Tab, you can also click on any vertex to get information about that player. Dark colors indicate that the player received no baggage requests."),
                  tags$li("Before downloading, increase Scale to 20 or 100 and run one last time to get a locally good roster."),
                  tags$li("Download from the Download tab.")
+               )
                )
       ),
       tabPanel(title = "Diagnostics",value = "two",fluidRow(
