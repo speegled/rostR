@@ -35,21 +35,21 @@ ui <- fluidPage(
         ),
         tabPanel("Fine Control",
                  fluidRow(
-                 column(6, actionButton("goButton", "Iterate")),
-                 column(6, numericInput("num_iter", h3("Number of Iterations"), value = 200))
+                   column(6, numericInput("num_iter", h3("Number of Iterations"), value = 200)),
+                   column(6, align = "center", style = "margin-top: 85px;", actionButton("goButton", "Iterate"), style="color: #FFFF33; background-color: #337ab7; border-color: #2e6da4")
                  ),
                  h2("Relative Weights"),
                  fluidRow (
                    column(4,
-                          numericInput("team_mean_weight", h4("Team Mean Power"), step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("team_mean_weight", h4("Team Power"), step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("team_mean_weight", "Tries to have the mean power rating of each team equal", placement = "top")
                    ),
                    column(4,
-                          numericInput("best_line_mean_weight", h4("U-Line Mean Power"),  step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("best_line_mean_weight", h4("U-Line Power"),  step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("best_line_mean_weight", "Mean power rating of best seven players (by gender ratio) equal", placement = "top")
                    ),
                    column(4,
-                          numericInput("num_women_weight", h4("Num Women per Team"), step = 0.05,min = 0,max = 200, value = 1),
+                          numericInput("num_women_weight", h4("Women Per Team"), step = 0.05,min = 0,max = 200, value = 1),
                           bsTooltip("num_women_weight", "Number of women on each team the same", placement = "top")
                    )
                  ),
@@ -81,8 +81,16 @@ ui <- fluidPage(
                  )
         ),
         tabPanel("Download",
-                 downloadButton("downloadData", "Download Roster"))
+                 fluidRow(
+                   column(12, 
+                          align = "center", 
+                          downloadButton(style = "margin-top:20px;", 
+                                         "downloadData", 
+                                         "Download Roster", 
+                                         icon = "download"))
+      ))
       )
+      
     ),
     mainPanel(tabsetPanel(id = "inTabset",
       tabPanel(title = "Welcome", value = "one",
@@ -151,15 +159,14 @@ ui <- fluidPage(
                tableOutput('roster_by_team')
       ),
       tabPanel(title = "Graph", value = "four",
-               fluidRow(
-                 column(10,
-                   plotOutput('igraph_output', height = "1000px", click = "click", hover = hoverOpts(
+                 tableOutput('vertex_info'),
+                 plotOutput('igraph_output', height = "1000px", click = "click", hover = hoverOpts(
                    id = "plot_hover")
-                   ),
-                   column(2, tableOutput('vertex_info'))
+                   )
+
                )
-               )
-               )
+               
+               
     )
     )
   )
@@ -172,6 +179,12 @@ server <- function(input, output, session) {
   vertex_colors_old <- NULL
   for_out_global <- NULL
   
+  click <- reactiveValues(x = NULL, y = NULL)
+
+  observeEvent(input$click, {
+    click$x <- input$click$x
+    click$y <- input$click$y
+  })
   
   #'
   #'
@@ -365,15 +378,18 @@ server <- function(input, output, session) {
   #'
   #'
   
-observeEvent(eventExpr = input$click, handlerExpr = {
-    if(!is.null(input$click)) {
+
+  
+  output$igraph_output <- renderPlot({
+    if(input$iterate_1  + input$goButton < 1) return(NULL)
+    if(!is.null(click$x)) {
       vertex_colors <- vertex_colors_old
       roster_long <- best_roster$r1_long
       roster <- best_roster$r1
       all_layout <- createLayout(roster_long, roster)
       my_layout <- all_layout$layout
       graph_df <- all_layout$graph_df
-      id_loc <- which.min(abs(input$click$x - my_layout[,1]) + abs(input$click$y - my_layout[,2]))
+      id_loc <- which.min(abs(click$x - my_layout[,1]) + abs(click$y - my_layout[,2]))
       id_for_display <- V(graph_df)$name[id_loc]
       #graph.data.frame arranges vertices in order of unique(as.vector(mat)), where mat is the matrix of edges
       #V(graph_df)$name is the same as unique(as.vector(as.matrix(select(roster_long, Id, Baggage))))
@@ -382,11 +398,6 @@ observeEvent(eventExpr = input$click, handlerExpr = {
       vertex_colors[id_loc] <- "yellow"
       vertex_colors <<- vertex_colors
     }
-  })
-  
-  output$igraph_output <- renderPlot({
-    if(input$iterate_1  + input$goButton < 1) return(NULL)
-    click <- input$click
     if(is.null(vertex_colors)) 
       vertex_colors <- vertex_colors_old
     createPlot(roster_long = best_roster$r1_long,  roster = best_roster$r1, vertex_colors)
