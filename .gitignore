@@ -5,3 +5,6 @@
 *.Rproj
 *debug
 *names.*
+data/*
+rsconnect/*
+app_debug*
