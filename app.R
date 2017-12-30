@@ -158,14 +158,17 @@ ui <- fluidPage(
       textOutput('iteration_warning')
       ),
       tabPanel(title = "Roster", value = "three",
+               wellPanel(id = "tPanel",style = "overflow-y:scroll; max-height: 600px",
                tableOutput('roster_by_team')
+               )
       ),
       tabPanel(title = "Graph", value = "four",
                  tableOutput('vertex_info'),
+               wellPanel(id = "tPanel",style = "overflow-y:scroll; max-height: 600px",
                  plotOutput('igraph_output', height = "1000px", click = "click", hover = hoverOpts(
                    id = "plot_hover")
                    )
-
+)
                )
                
                
