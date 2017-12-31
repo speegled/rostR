@@ -203,6 +203,9 @@ server <- function(input, output, session) {
         shinyjs::enable("iterate_1")
         enable("goButton")
         updateActionButton(session, "iterate_1", label = "Start Making My Roster")
+        disable("num_teams")
+        disable("roster")
+        disable("baggage")
       }
 
   } 
@@ -538,7 +541,7 @@ server <- function(input, output, session) {
   
   observeEvent(eventExpr = input$iterate_1 + input$goButton, handlerExpr = 
     {
-      if(input$iterate_1+ input$goButton == 1)
+      if(input$iterate_1+ input$goButton > 0)
         updateTabsetPanel(session, "inTabset", selected = "two")
   })
   
