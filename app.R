@@ -218,6 +218,11 @@ server <- function(input, output, session) {
     click$y <- input$click$y
   })
   
+  observeEvent(eventExpr = paste(input$iterate_1, input$goButton), handlerExpr = {
+    click$x = NULL
+    click$y = NULL
+  })
+  
   #'
   #'
   #' BEGIN: get all of the options for the find_best_roster function in helpers. 
@@ -382,9 +387,11 @@ server <- function(input, output, session) {
     #Every time they click iterate, we recalculate the vertex colors
     roster <- best_roster$r1
     roster_long <- best_roster$r1_long
-    vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
+    vertices <- data.frame(Id = unique(as.vector(as.matrix(select(roster_long, Id, Baggage)))))
+    arranged_roster_long <- left_join(vertices, roster_long)
+    arranged_roster <- left_join(vertices, roster)
+    vertex_colors <- ifelse(pull(arranged_roster, Female) > 0,"Pink", "Light Blue") 
     
-    arranged_roster_long <- roster_long
     players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
     for(i in 1:length(players_no_baggage$Id)) {
       if(players_no_baggage$No_baggage[i]) {
@@ -451,7 +458,7 @@ server <- function(input, output, session) {
     layout_long <- createLayout(roster_long = roster_long, roster = roster)
     my_layout <- layout_long$layout
     graph_df <- layout_long$graph_df
-    id_loc <- which.min(abs(isolate(input$click$x) - my_layout[,1]) + abs(isolate(input$click$y) - my_layout[,2]))
+    id_loc <- which.min(abs(isolate(click$x) - my_layout[,1]) + abs(isolate(click$y) - my_layout[,2]))
     id_for_display <- V(graph_df)$name[id_loc]
     team_for_display <- filter(roster, Id == id_for_display) %>% pull(Team)
     gender_for_display <- ifelse(filter(roster, Id == id_for_display) %>% pull(Female) > 0, "Female", "Male")

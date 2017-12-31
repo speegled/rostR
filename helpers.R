@@ -47,12 +47,14 @@ createPlot <- function(roster_long, roster, vertex_colors) {
   
   graph_df <- graph.data.frame(d = rbind(d1, d2), directed = FALSE)
   graph_df <- simplify(graph_df, remove.loops = TRUE)
-  vertex_labels <- round(arrange(roster, Id) %>% pull(Raw_power)) 
-  arranged_roster_long <- arrange(roster_long, Id)
+  vertices <- data.frame(Id = unique(as.vector(as.matrix(select(roster_long, Id, Baggage)))))
+  arranged_roster <- left_join(vertices, roster)
+  arranged_roster_long <- left_join(vertices, roster_long)
+  vertex_labels <- round(arranged_roster %>% pull(Raw_power)) 
   players_no_baggage <- setDT(arranged_roster_long)[,  list(No_baggage = all(!Team %in% Team_baggage)), by = Id]
   
   if(missing(vertex_colors)) {
-    vertex_colors <- ifelse(arrange(roster, Id) %>% pull(Female) > 0,"Pink", "Light Blue") 
+    vertex_colors <- ifelse(arranged_roster %>% pull(Female) > 0,"Pink", "Light Blue") 
     for(i in 1:length(players_no_baggage$Id)) {
       if(players_no_baggage$No_baggage[i]) {
         vertex_colors[i] <- if(vertex_colors[i] == "Pink") { 
