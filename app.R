@@ -4,12 +4,14 @@ library(data.table)
 library(stringr)
 library(shinyBS)
 library(igraph)
+library(shinyjs)
 
 source("helpers.R")
 best_roster <-   NULL
 initial_roster <- NULL
 
 ui <- fluidPage(
+  useShinyjs(),
   titlePanel("RostR"),
   
   sidebarLayout(fluid = FALSE,
@@ -31,7 +33,9 @@ ui <- fluidPage(
                           bsTooltip("gender_ratio", "Used for Power Calculation. Default is 5/2", placement = "bottom")
                    )
                  ),
-                 actionButton("iterate_1", "Start Making My Rosters")
+                 disabled(
+                   actionButton("iterate_1", "Load Players and Baggage First")
+                 )
         ),
         tabPanel("Fine Control",
                  fluidRow(
@@ -185,6 +189,19 @@ server <- function(input, output, session) {
   vertex_colors <- NULL
   vertex_colors_old <- NULL
   for_out_global <- NULL
+  
+  
+  observeEvent(eventExpr = paste(input$roster, input$baggage, input$no_baggage, input$use_default + input$iterate_1), priority = 10, handlerExpr = {
+      if(!is.null(input$roster) && !is.null(input$baggage) ||
+         (!is.null(input$roster) && input$no_baggage) ||
+         (input$use_default)
+      ) {
+        shinyjs::enable("iterate_1")
+        updateActionButton(session, "iterate_1", label = "Start Making My Roster")
+      }
+
+  } 
+  )
   
   click <- reactiveValues(x = NULL, y = NULL)
 
