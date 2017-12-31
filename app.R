@@ -39,7 +39,8 @@ ui <- fluidPage(
         ),
         tabPanel("Fine Control",
                  fluidRow(
-                   column(6, numericInput("num_iter", h3("Number of Iterations"), value = 200)),
+                   column(6, numericInput("num_iter", h3("Number of Iterations"), value = 500),
+                          bsTooltip("num_iter", "Between 200 and 5000", placement = "bottom")),
                    column(6, align = "center", style = "margin-top: 85px;", 
                           disabled(actionButton("goButton", "Iterate")), 
                           style="color: #FFFF33; background-color: #337ab7; border-color: #2e6da4")
@@ -369,20 +370,20 @@ server <- function(input, output, session) {
       
       r1_long <- left_join(x = r1, y = bag, by = c("Id" = "Baggager"))
       r1_long <- left_join(r1_long, team_assignment, by = c("Baggage" = "Id"), suffix = c("", "_baggage"))
-      best_roster <<- list(r1 = r1, r1_long = r1_long)
-    } else{ #Subsequent times they click on make my roster
-      enable("downloadData")
-      r1 <- find_best_roster(roster = best_roster$r1, 
-                             roster_long = best_roster$r1_long, 
-                             weight_vec = get_weight_vec(), 
-                             my_scale = get_my_scale(), 
-                             score_roster = score_roster, 
-                             num_teams = get_num_teams(), 
-                             num_iter = input$num_iter, 
-                             men_per_line = get_num_men()
-                             )
-      best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long, probs = r1$probs)
+      best_roster <<- list(r1 = r1, r1_long = r1_long, probs = NA)
     }
+    enable("downloadData")
+    r1 <- find_best_roster(roster = best_roster$r1, 
+                           roster_long = best_roster$r1_long, 
+                           weight_vec = get_weight_vec(), 
+                           my_scale = get_my_scale(), 
+                           score_roster = score_roster, 
+                           num_teams = get_num_teams(), 
+                           num_iter = input$num_iter, 
+                           men_per_line = get_num_men()
+    )
+    best_roster <<- list(r1 = r1$roster, r1_long = r1$roster_long, probs = r1$probs)
+    
     
     #Every time they click iterate, we recalculate the vertex colors
     roster <- best_roster$r1
@@ -505,7 +506,7 @@ server <- function(input, output, session) {
     req(input$num_iter)
     g_out <- best_roster
     if(is.null(g_out$probs)) return(NULL)
-    if(input$num_iter < 1000) return(NULL)
+    if(input$num_iter < 500) return(NULL)
     if(sum(diff(g_out$probs) > 0) > sum(diff(g_out$probs) < 0)) 
       paste("Algorithm seems to be wandering between essentially equally likely states. If this continues, consider changing increasing number of iterations, increasing importance levels, or increasing scale.")
   })
