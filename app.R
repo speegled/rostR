@@ -40,7 +40,10 @@ ui <- fluidPage(
         tabPanel("Fine Control",
                  fluidRow(
                    column(6, numericInput("num_iter", h3("Number of Iterations"), value = 200)),
-                   column(6, align = "center", style = "margin-top: 85px;", actionButton("goButton", "Iterate"), style="color: #FFFF33; background-color: #337ab7; border-color: #2e6da4")
+                   column(6, align = "center", style = "margin-top: 85px;", 
+                          disabled(actionButton("goButton", "Iterate")), 
+                          style="color: #FFFF33; background-color: #337ab7; border-color: #2e6da4")
+                   
                  ),
                  h4("Relative Weights"),
                  fluidRow (
@@ -88,10 +91,11 @@ ui <- fluidPage(
                  fluidRow(
                    column(12, 
                           align = "center", 
-                          downloadButton(style = "margin-top:20px;", 
+                          disabled(downloadButton(style = "margin-top:20px;", 
                                          "downloadData", 
                                          "Download Roster", 
                                          icon = "download"))
+                   )
       ))
       )
       
@@ -197,6 +201,7 @@ server <- function(input, output, session) {
          (input$use_default)
       ) {
         shinyjs::enable("iterate_1")
+        enable("goButton")
         updateActionButton(session, "iterate_1", label = "Start Making My Roster")
       }
 
@@ -317,6 +322,8 @@ server <- function(input, output, session) {
   
   get_best_roster <- observeEvent(eventExpr = input$iterate_1 + input$goButton, handlerExpr = {
     
+    disable("iterate_1")
+    disable("goButton")
     #Before clicking on make my roster
     if(input$iterate_1 + input$goButton == 0) return(NULL)
     #First time they click on make my roster
@@ -356,6 +363,7 @@ server <- function(input, output, session) {
       r1_long <- left_join(r1_long, team_assignment, by = c("Baggage" = "Id"), suffix = c("", "_baggage"))
       best_roster <<- list(r1 = r1, r1_long = r1_long)
     } else{ #Subsequent times they click on make my roster
+      enable("downloadData")
       r1 <- find_best_roster(roster = best_roster$r1, 
                              roster_long = best_roster$r1_long, 
                              weight_vec = get_weight_vec(), 
@@ -384,6 +392,8 @@ server <- function(input, output, session) {
     }
     vertex_colors <<- vertex_colors
     vertex_colors_old <<- vertex_colors
+    enable("iterate_1")
+    enable("goButton")
   })
   
   get_roster_summary <- eventReactive(eventExpr = input$iterate_1 + input$goButton, valueExpr = {
