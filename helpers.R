@@ -128,7 +128,7 @@ score_roster <- function(roster_long, roster, weight_vec, num_teams, men_per_lin
   women_per_line <- 7 - men_per_line
   num_no_baggage <-  sum(setDT(roster_long)[,  list(B = all(!Team %in% Team_baggage)) , by = Id]$B)/100
   
-  num_women <- as.numeric(table(roster$Team[which(roster$Female> 0)]))
+  num_women <- roster %>% group_by(Team) %>% summarize(num_women = sum(Female > 0)) %>% pull(num_women)
   diff_number_women <- my_mad(num_women, center = mean(num_women))/400 + 
     max(max(num_women) - min(num_women)  - 2, 0) * .01 + 
     max(max(num_women) - min(num_women) - 1, 0) * .005
@@ -194,7 +194,9 @@ score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, means
   
   num_no_baggage <- num_no_baggage - sum(is.na(roster_long$Baggage))
   
-  num_women <- as.numeric(table(roster$Team[which(roster$Female> 0)]))
+  num_women <- roster %>% group_by(Team) %>% summarize(num_women = sum(Female > 0)) %>% pull(num_women)
+    
+    # WAS as.numeric(table(roster$Team[which(roster$Female> 0)]))
   diff_number_women <- my_mad(num_women, center = mean(num_women))/400 + 
     max(max(num_women) - min(num_women)  - 2, 0) * .02 
   
