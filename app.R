@@ -106,7 +106,10 @@ ui <- fluidPage(
                wellPanel(id = "tPanel",style = "overflow-y:scroll; max-height: 600px",
                h2("Welcome to RostR, an MCMC Interactive Roster Builder"),
                tags$br(),
-               HTML("<a href=\"https://github.com/speegled/rostR\">rostR</a>"), "uses Markov Chain Monte Carlo to assign players to teams. When assigning players, there are competing goals. Friends want to play on the same team. Teams should be reasonably competitive. If it is a mixed league, the gender rations of the teams should be similar. RostR allows users to assign importance levels to the various competing goals, and finds a roster which is suited to those goals.",
+               HTML("<a href=\"https://github.com/speegled/rostR\">rostR</a>"), "uses Markov Chain Monte Carlo to build teams from a list of players. In a typical application, a league organizer will have a list of players with identifying information such as gender and strength of the player, together with a list of other players that each person would like to play with. The league organziers job is to split the list of players into teams.",
+               tags$br(),
+               tags$br(),
+               "When assigning players to teams, there are competing goals. Friends want to play on the same team. Teams should be reasonably competitive. If it is a mixed league, the gender rations of the teams should be similar. RostR allows users to assign importance levels to the various competing goals, and finds a roster which is suited to those goals.",
                tags$br(),
                tags$br(),
                "In the default version, RostR tries to put each player on the same team with at least one person that they requested. It also tries to have similar number of women on each team. Given those two, it tries to make the relative strengths of the best 7 players on a team, and the relative strength of all players on a team, more or less equal. Finally, it tries to grant as many individual baggage requests as possible. If you play around with the program, you'll see that it doesn't necessarily do all of those things in that order, but that is roughly the priority assigned. Here are the instructions for getting started.",
@@ -298,12 +301,14 @@ server <- function(input, output, session) {
   })
   
   get_weight_vec <- reactive({
-    c(get_num_no_baggage_weight(), 
+    wv <- c(get_num_no_baggage_weight(), 
       get_num_women_weight(), 
       get_num_players_weight(), 
       get_best_line_mean_weight(), 
       get_team_mean_weight(),
-      get_num_baggage_all_weight()) 
+      get_num_baggage_all_weight())
+    if(input$no_baggage == TRUE)
+      wv <- 5 * wv
   })
   #'
   #'
