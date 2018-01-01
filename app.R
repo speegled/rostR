@@ -255,6 +255,10 @@ server <- function(input, output, session) {
     } 
     my_scale <- input$my_scale * 200 
     output$my_scale_warning <- renderText({NULL})
+    if(input$no_baggage && (input$iterate_1 + input$goButton < 5))
+      my_scale <- input$my_scale * 1000
+    if(input$no_baggage && (input$iterate_1 + input$goButton >= 5))
+      my_scale <- input$my_scale * 2000
     return(my_scale)
   })
   
@@ -308,7 +312,8 @@ server <- function(input, output, session) {
       get_team_mean_weight(),
       get_num_baggage_all_weight())
     if(input$no_baggage == TRUE)
-      wv <- 5 * wv
+      wv <- c(1, 2, 1, 6, 4, 1) * wv
+    return(wv)
   })
   #'
   #'
