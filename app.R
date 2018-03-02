@@ -5,6 +5,7 @@ library(stringr)
 library(shinyBS)
 library(igraph)
 library(shinyjs)
+library(igraph)
 
 source("helpers.R")
 best_roster <-   NULL
@@ -21,8 +22,9 @@ ui <- fluidPage(
                  fileInput("roster", h4("Player file")),
                  fileInput("baggage", h4("Baggage file")),
                  fluidRow(
-                   column(6, checkboxInput("no_baggage", label = "No Baggage")),
-                   column(6, checkboxInput("use_default", label = "Use Test Data"))),
+                   column(4, checkboxInput("no_baggage", label = "No Baggage")),
+                   column(4, checkboxInput("use_default", label = "Use Test Data")),
+                   column(4, checkboxInput("component_start", label = "Grant Big Groups"))),
                  fluidRow(
                    column(6,
                           numericInput("num_teams", h5("Number of Teams"), step = 1, min = 1, max = 100, value = 1),
@@ -39,7 +41,7 @@ ui <- fluidPage(
         ),
         tabPanel("Fine Control",
                  fluidRow(
-                   column(6, numericInput("num_iter", h3("Number of Iterations"), value = 500),
+                   column(6, numericInput("num_iter", h3("Number of Iterations"), value = 750),
                           bsTooltip("num_iter", "Between 200 and 5000", placement = "bottom")),
                    column(6, align = "center", style = "margin-top: 85px;", 
                           disabled(actionButton("goButton", "Iterate")), 
@@ -207,7 +209,7 @@ server <- function(input, output, session) {
         shinyjs::enable("iterate_1")
         enable("goButton")
         updateActionButton(session, "iterate_1", label = "Start Making My Roster")
-        disable("num_teams")
+
         disable("roster")
         disable("baggage")
       }
@@ -343,6 +345,8 @@ server <- function(input, output, session) {
     
     disable("iterate_1")
     disable("goButton")
+    disable("num_teams")
+    disable("component_start")
     #Before clicking on make my roster
     if(input$iterate_1 + input$goButton == 0) return(NULL)
     #First time they click on make my roster
@@ -371,7 +375,31 @@ server <- function(input, output, session) {
       #set.seed(1) uncomment in debug mode
       #
       # Note: this next line is part of a bug when not every team is assigned at least one woman.
-      team_assignment$Team <- c(sample(rep(1:get_num_teams(),floor(nrow(r1)/get_num_teams()))), sample(1:get_num_teams(), nrow(r1) %% get_num_teams()))
+      if(!input$component_start) {
+        team_assignment$Team <- c(sample(rep(1:get_num_teams(),floor(nrow(r1)/get_num_teams()))), sample(1:get_num_teams(), nrow(r1) %% get_num_teams()))
+      } else {
+        gg <- graph.data.frame(bag[,1:2], directed = FALSE)
+        comp <- components(gg)
+        sizes <- unique(sort(comp$csize, decreasing = TRUE)[1:get_num_teams()])
+        mems <- c()
+        for(s in sizes) {
+          mems <- c(mems, which(s == comp$csize))
+        }
+        mems <- mems[1:get_num_teams()]
+        for(i in 1:get_num_teams()) {
+          team_assignment$Team[team_assignment$Id %in% as.integer(attr(x = comp$membership[comp$membership == mems[i]], which = "name"))] <- i
+        }
+        for(i in 1:4) {
+          team_assignment$Team[team_assignment$Id %in% as.integer(attr(x = comp$membership[comp$membership == mems[i]], which = "name"))] <- i
+        }
+        to_assign <- sum(is.na(team_assignment$Team))
+        for(i in 1:to_assign) {
+          team <- which.min(table(team_assignment$Team))
+          x <- which(is.na(team_assignment$Team))
+          assign <- x[sample(length(x), 1)]
+          team_assignment$Team[assign] <- team
+        } 
+      }
       r1 <- left_join(r1, team_assignment)
       scaled_Power <- scale(r1$Power)
       r1$Raw_power <- r1$Power      

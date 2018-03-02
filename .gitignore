@@ -8,3 +8,4 @@
 data/*
 rsconnect/*
 app_debug*
+*.csv
