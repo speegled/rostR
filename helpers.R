@@ -3,15 +3,7 @@ my_mad <- function(x, center, expon = 1) {
   mean(abs(x - center)^expon, na.rm = TRUE)
 }
 
-#' copied from stackoverflow
-weight.community=function(row, membership, weigth.within, weight.between){
-  if(as.numeric(membership[which(names(membership)==row[1])])==as.numeric(membership[which(names(membership)==row[2])])){
-    weight=weigth.within
-  }else{
-    weight=weight.between
-  }
-  return(weight)
-}
+
 
 createHatDrawBaggage <- function(roster) {
   return(data.frame(Baggager = roster$Id, Baggage = roster$Id, Weight = 1, stringsAsFactors = FALSE))
@@ -172,12 +164,7 @@ score_roster <- function(roster_long, roster, weight_vec, num_teams, men_per_lin
 
 
 
-makeLongRoster <- function(roster, bag, num_teams) {
-  
-  roster_long <- left_join(x = roster, y = bag, by = c("Id" = "Baggager"))
-  roster_long <- left_join(roster_long, team_assignment, by = c("Baggage" = "Id"), suffix = c("", "_baggage"))
-  roster_long
-}
+
 
 
 score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, meanscore = 0, sdev = 1, men_per_line = 5, power_thresh = 0.25) {
@@ -288,12 +275,31 @@ find_best_roster <- function(roster, roster_long, weight_vec, my_scale = 200, sc
   current_score <- score_roster(roster_long, roster, weight_vec, num_teams = num_teams, men_per_line = men_per_line)
   probs <- current_score
   Ids <- unique(roster$Id)
+  if(length(Ids) == 1)
+    Ids <- c(Ids, Ids)  #stupid sample
   for(i in 1:num_iter) {
     cboth <- sample(Ids, 2)
     c1 <- cboth[1]
     c2 <- cboth[2]
     t1 <- roster$Team[min(which(roster$Id == c1))]
     t2 <- roster$Team[min(which(roster$Id == c2))]
+    
+    if(runif(1) < .05) {
+      un_bagged <- group_by(roster_long, Id) %>% filter(all(Team != Team_baggage)) %>% ungroup()
+      if(nrow(un_bagged) > 1) {
+          c1 <- sample_n(un_bagged, 1) %>% pull(Id)
+          t2 <- filter(un_bagged, Id == c1) %>% sample_n(1) %>% pull(Team_baggage)
+          t1 <- roster$Team[min(which(roster$Id == c1))]
+          c2 <- filter(roster, Team == t2) %>% sample_n(1) %>% pull(Id)
+          #c1 <- sample(un_bagged$Id, 1)
+          #t1 <- roster$Team[min(which(roster$Id == c1))]
+          #t2 <- filter(un_bagged, Id == c1) %>% sample_n(1) %>% pull(Team_baggage)
+          #if(nrow(filter(roster_long, Baggage == c1 & Team == t1)) > 0)
+          #  c1 <- c(c1, filter(roster_long, Baggage == c1 & Team == t1) %>% sample_n(1) %>% pull(Id))
+          #if(length(unique(c1)) > 1)
+          #  c2 <- filter(roster_long, Team == t2) %>% distinct(Id) %>% sample_n(2) %>% pull()
+      }
+    }
     
     if(t1 != t2) {
       roster_proposed <- roster
@@ -319,3 +325,25 @@ find_best_roster <- function(roster, roster_long, weight_vec, my_scale = 200, sc
 
 
 
+#'
+#' Here is the code graveyard. I don't think any of this stuff does anything.
+#'
+
+
+
+makeLongRoster <- function(roster, bag, num_teams) {
+  
+  roster_long <- left_join(x = roster, y = bag, by = c("Id" = "Baggager"))
+  roster_long <- left_join(roster_long, team_assignment, by = c("Baggage" = "Id"), suffix = c("", "_baggage"))
+  roster_long
+}
+
+#' copied from stackoverflow
+weight.community=function(row, membership, weigth.within, weight.between){
+  if(as.numeric(membership[which(names(membership)==row[1])])==as.numeric(membership[which(names(membership)==row[2])])){
+    weight=weigth.within
+  }else{
+    weight=weight.between
+  }
+  return(weight)
+}
