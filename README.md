@@ -9,6 +9,7 @@ I would love to have contributors help on this project. If you see a mistake, pl
 1. I would like to have an option that allows the user to let rostR create a finsihed roster for them. This way, they wouldn't have to fiddle around with the fine controls unless they don't like the final roster for some reason.
 2. I would like to improve the UI on the graph page. It still seems clunky.
 3. I would like to add the names and/or Id's on the Diagnostics tab who don't get assigned any baggage.
+4. I would like to have a way that the user could move players by hand between cycles.
 
 Code of Conduct: All contributors to this package will treat other contributors with respect. All contributions are valued.
 
