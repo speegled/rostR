@@ -364,6 +364,8 @@ server <- function(input, output, session) {
       names(r1) <- tolower(names(r1))
       names(r1) <- str_replace_all(names(r1), "[^a-z]", "")
       names(r1) <- stringi::stri_trans_totitle(names(r1))
+      if(!("Captain" %in% names(r1)))
+        r1$Captain <- 0
       initial_roster <<- r1
       if(checkRoster(r1) == -1)
         stop("Please make sure roster is in correct format.")
@@ -375,8 +377,19 @@ server <- function(input, output, session) {
       #set.seed(1) uncomment in debug mode
       #
       # Note: this next line is part of a bug when not every team is assigned at least one woman.
-      if(!input$component_start) {
-        team_assignment$Team <- c(sample(rep(1:get_num_teams(),floor(nrow(r1)/get_num_teams()))), sample(1:get_num_teams(), nrow(r1) %% get_num_teams()))
+      if(!input$component_start || sum(r1$Captain) > 0) {
+        team_assignment$Team <- NA
+        captains <- r1$Id[which(r1$Captain == 1)]
+        for(i in 1:min(get_num_teams(),sum(r1$Captain))) {
+          team_assignment$Team[which(team_assignment$Id == captains[i])] <- i
+        }
+        to_assign <- sum(is.na(team_assignment$Team))
+        for(i in 1:to_assign) {
+          team <- which.min(table(team_assignment$Team))
+          x <- which(is.na(team_assignment$Team))
+          assign <- x[sample(length(x), 1)]
+          team_assignment$Team[assign] <- team
+        } 
       } else {
         gg <- graph.data.frame(bag[,1:2], directed = FALSE)
         comp <- components(gg)
