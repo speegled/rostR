@@ -301,7 +301,7 @@ find_best_roster <- function(roster, roster_long, weight_vec, my_scale = 200, sc
       }
     }
     
-    if(t1 != t2) {
+    if(t1 != t2 && roster$Captain[which(roster$Id == c1)] ==0 && roster$Captain[which(roster$Id == c2)] == 0) {
       roster_proposed <- roster
       roster_proposed$Team[which(roster$Id == c1)] <- t2
       roster_proposed$Team[which(roster$Id == c2)] <- t1
