@@ -105,6 +105,8 @@ ui <- fluidPage(
     ),
     mainPanel(tabsetPanel(id = "inTabset",
       tabPanel(title = "Welcome", value = "one",
+               verbatimTextOutput('csv_error'),
+               tags$hr(),
                wellPanel(id = "tPanel",style = "overflow-y:scroll; max-height: 600px",
                h2("Welcome to RostR, an MCMC Interactive Roster Builder"),
                tags$br(),
@@ -201,7 +203,28 @@ server <- function(input, output, session) {
   vertex_colors <- NULL
   vertex_colors_old <- NULL
   for_out_global <- NULL
-  
+ 
+  output$csv_error <- renderText({
+    return_string <- " "
+    if(!is.null(input$roster) && !is.null(input$baggage)) {
+      r1 <- read.csv(input$roster$datapath)
+      if(!("id" %in% tolower(names(r1)))) 
+        return_string <- paste0(return_string, "roster file must have variable named ID\n")
+      if(!("female" %in% tolower(names(r1)))) 
+        return_string <- paste0(return_string, " include variable named female if you want gender considerations\n")
+      if(!("power" %in% tolower(names(r1)))) 
+        return_string <- paste0(return_string, " include variable named power if you want to balance strength of teams\n")
+      if(!("captain" %in% tolower(names(r1)))) 
+        return_string <- paste0(return_string, " include variable named captain if you want to place captains on different teams\n") 
+      if(length(which(apply(bag, 1, function(x) any(is.na(x))))) > 0)
+         return_string <- paste0(return_string, " missing data found\n")
+      bag <- read.csv(input$baggage$datapath)
+      names(r1) <- tolower(names(r1))
+      if("id" %in% names(r1) && sum(sapply(bag, function(x) !(x %in% r1$id))))
+        return_string <- paste0(return_string, " some baggage request Ids not found\n")
+      return(return_string)  
+    }
+  }) 
   
   observeEvent(eventExpr = paste(input$roster, input$baggage, input$no_baggage, input$use_default + input$iterate_1), priority = 10, handlerExpr = {
       if(!is.null(input$roster) && !is.null(input$baggage) ||
