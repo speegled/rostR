@@ -387,10 +387,17 @@ server <- function(input, output, session) {
         }
         to_assign <- sum(is.na(team_assignment$Team))
         for(i in 1:to_assign) {
-          team <- which.min(table(team_assignment$Team))
-          x <- which(is.na(team_assignment$Team))
-          assign <- x[sample(length(x), 1)]
-          team_assignment$Team[assign] <- team
+          if(length(table(team_assignment$Team)) == get_num_teams()) {
+            team <- which.min(table(team_assignment$Team))
+            x <- which(is.na(team_assignment$Team))
+            assign <- x[sample(length(x), 1)]
+            team_assignment$Team[assign] <- team
+          } else{
+            team <- which.min(sapply(1:get_num_teams(), function(x) x %in% team_assignment$Team))
+            x <- which(is.na(team_assignment$Team))
+            assign <- x[sample(length(x), 1)]
+            team_assignment$Team[assign] <- team
+          }
         } 
       } else {
         gg <- graph.data.frame(bag[,1:2], directed = FALSE)
