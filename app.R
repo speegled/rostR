@@ -205,7 +205,7 @@ server <- function(input, output, session) {
   for_out_global <- NULL
  
   output$csv_error <- renderText({
-    return_string <- " "
+    return_string <- NULL
     if(!is.null(input$roster) && !is.null(input$baggage)) {
       r1 <- read.csv(input$roster$datapath)
       if(!("id" %in% tolower(names(r1)))) 
@@ -216,9 +216,11 @@ server <- function(input, output, session) {
         return_string <- paste0(return_string, " include variable named power if you want to balance strength of teams\n")
       if(!("captain" %in% tolower(names(r1)))) 
         return_string <- paste0(return_string, " include variable named captain if you want to place captains on different teams\n") 
-      if(length(which(apply(bag, 1, function(x) any(is.na(x))))) > 0)
-         return_string <- paste0(return_string, " missing data found\n")
+      if(sum(is.na(r1)) > 0)
+         return_string <- paste0(return_string, " missing data found in roster\n")
       bag <- read.csv(input$baggage$datapath)
+      if(sum(is.na(bag)) > 0)
+        return_string <- paste0(return_string, " missing data found in baggage\n")
       names(r1) <- tolower(names(r1))
       if("id" %in% names(r1) && sum(sapply(bag, function(x) !(x %in% r1$id))))
         return_string <- paste0(return_string, " some baggage request Ids not found\n")
