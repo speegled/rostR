@@ -165,6 +165,8 @@ ui <- fluidPage(
         )
       ),
       tags$hr(),
+      textOutput('iterate_again_or_fine_control'),
+      tags$hr(),
       textOutput('num_no_baggage'),
       textOutput('num_baggage_missing'),
       tableOutput('probs'),
@@ -487,6 +489,11 @@ server <- function(input, output, session) {
     return(for_out)
     
     
+  })
+  
+  output$iterate_again_or_fine_control <- renderText({
+    if(input$goButton + input$iterate_1 <= 3 && input$goButton  + input$iterate_1 > 0)
+      return("Click Iterate to continue finding best roster, or Fine Control to change parameters.")
   })
   
   output$table <- renderTable({
