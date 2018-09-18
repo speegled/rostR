@@ -206,7 +206,7 @@ server <- function(input, output, session) {
  
   output$csv_error <- renderText({
     return_string <- NULL
-    if(!is.null(input$roster) && !is.null(input$baggage)) {
+    if(!is.null(input$roster)) {
       r1 <- read.csv(input$roster$datapath)
       if(!("id" %in% tolower(names(r1)))) 
         return_string <- paste0(return_string, "roster file must have variable named ID\n")
@@ -218,14 +218,16 @@ server <- function(input, output, session) {
         return_string <- paste0(return_string, " include variable named captain if you want to place captains on different teams\n") 
       if(sum(is.na(r1)) > 0)
          return_string <- paste0(return_string, " missing data found in roster\n")
+    }
+    if(!is.null(input$baggage)) {
       bag <- read.csv(input$baggage$datapath)
       if(sum(is.na(bag)) > 0)
         return_string <- paste0(return_string, " missing data found in baggage\n")
       names(r1) <- tolower(names(r1))
       if("id" %in% names(r1) && sum(sapply(bag, function(x) !(x %in% r1$id))))
         return_string <- paste0(return_string, " some baggage request Ids not found\n")
-      return(return_string)  
     }
+    return(return_string)  
   }) 
   
   observeEvent(eventExpr = paste(input$roster, input$baggage, input$no_baggage, input$use_default + input$iterate_1), priority = 10, handlerExpr = {
