@@ -266,7 +266,29 @@ score_roster_debug <- function(roster_long, roster, weight_vec, num_teams, means
 
 
 
+switch_one_player <- function(roster, 
+                              roster_long,
+                              player_id,
+                              team_id,
+                              weight_vec,
+                              num_teams,
+                              men_per_line) {
 
+  roster_proposed <- roster
+  roster_proposed$Team[which(roster$Id == player_id)] <- team_id
+  roster_long_proposed <- roster_long
+  roster_long_proposed$Team[which(roster_long$Id == player_id)] <- team_id
+  roster_long_proposed$Team_baggage[which(roster_long$Baggage == player_id)] <- team_id
+  score_proposed <- score_roster(roster_long_proposed, 
+                                 roster_proposed, 
+                                 weight_vec, 
+                                 num_teams = num_teams, 
+                                 men_per_line = men_per_line)
+  current_score <- score_proposed
+  roster <- roster_proposed
+  roster_long <- roster_long_proposed
+  list(roster = roster, roster_long = roster_long, score = current_score)
+}
 
 
 

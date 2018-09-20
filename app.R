@@ -88,6 +88,15 @@ ui <- fluidPage(
                           numericInput("my_scale", h5("Scale for Metropolis-Hastings"), step = 0.05,min = .05,max = 200, value = 1),
                           bsTooltip("my_scale", "Larger ignores worse rosters in MCMC. Try changing by 10% to start.", placement = "bottom")
                    )
+                 ),
+                 h2("Move Player"),
+                 fluidRow(
+                   column(4,
+                          textInput(inputId = "player_to_move",label = "player")),
+                   column(4,
+                          textInput(inputId = "team_id", label = "new team")),
+                   column(4,
+                          actionButton(inputId = "move_player", label = "move player now"))
                  )
         ),
         tabPanel("Download",
@@ -364,6 +373,31 @@ server <- function(input, output, session) {
     return(bag)
   })
 
+  #'
+  #'
+  #' Switch one player
+  #' 
+  #' 
+  
+  observeEvent(eventExpr = input$move_player, handlerExpr = {
+    if(input$move_player > 0) {
+    id <- as.integer(input$player_to_move)
+    team <- as.integer(input$team_id)
+    oo <- switch_one_player(roster = best_roster$r1, 
+                            roster_long = best_roster$r1_long, 
+                            player_id = id, 
+                            team_id = team, 
+                            weight_vec = get_weight_vec(), 
+                            num_teams = get_num_teams(), 
+                            men_per_line = get_num_men()
+                            )
+    best_roster <<- list(r1 = oo$roster,
+                         r1_long = oo$roster_long,
+                         probs = oo$score)
+    }
+  })
+  
+  
   #'
   #'
   #' BEGIN: MCMC roster builder
