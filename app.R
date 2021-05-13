@@ -36,7 +36,7 @@ ui <- fluidPage(
                    )
                  ),
                  disabled(
-                   actionButton("iterate_1", "Load Players and Baggage First")
+                   actionButton(inputId = "iterate_1", label = "Load Players and Baggage First", icon = NULL)
                  )
         ),
         tabPanel("Fine Control",
@@ -44,7 +44,7 @@ ui <- fluidPage(
                    column(6, numericInput("num_iter", h3("Number of Iterations"), value = 750),
                           bsTooltip("num_iter", "Between 200 and 5000", placement = "bottom")),
                    column(6, align = "center", style = "margin-top: 85px;", 
-                          disabled(actionButton("goButton", "Iterate")), 
+                          disabled(actionButton(inputId = "goButton", label = "Iterate")), 
                           style="color: #FFFF33; background-color: #337ab7; border-color: #2e6da4")
                    
                  ),
@@ -96,7 +96,7 @@ ui <- fluidPage(
                    column(4,
                           textInput(inputId = "team_id", label = "new team")),
                    column(4,
-                          actionButton(inputId = "move_player", label = "move player now"))
+                          actionButton(inputId = "move_player", label = "move player now", icon = NULL))
                  )
         ),
         tabPanel("Download",
@@ -106,7 +106,7 @@ ui <- fluidPage(
                           disabled(downloadButton(style = "margin-top:20px;", 
                                          "downloadData", 
                                          "Download Roster", 
-                                         icon = "download"))
+                                         icon = icon("download")))
                    )
       ))
       )
@@ -246,7 +246,7 @@ server <- function(input, output, session) {
       ) {
         shinyjs::enable("iterate_1")
         enable("goButton")
-        updateActionButton(session, "iterate_1", label = "Start Making My Roster")
+        updateActionButton(session, inputId = "iterate_1", label = "Start Making My Roster", icon = NULL)
 
         disable("roster")
         disable("baggage")
@@ -680,7 +680,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$iterate_1, {
-    updateActionButton(session, "iterate_1", label = "Iterate")
+    updateActionButton(session, inputId = "iterate_1", label = "Iterate", icon = NULL)
   })
 }
 
