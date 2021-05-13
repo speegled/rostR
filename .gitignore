@@ -9,3 +9,4 @@ data/*
 rsconnect/*
 app_debug*
 *.csv
+.DS_Store
